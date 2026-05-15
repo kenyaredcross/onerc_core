@@ -11,21 +11,22 @@
  ],
  "fields": [
   {
+   "description": "e.g. FaceBook",
    "fieldname": "social_media_site",
    "fieldtype": "Data",
-   "label": "Social Media Site",
+   "label": "Social Media Site Name",
    "unique": 1
   },
   {
    "fieldname": "social_media_icon",
-   "fieldtype": "Icon",
+   "fieldtype": "Attach Image",
    "label": "Social Media Icon"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-05-11 19:50:54.074816",
+ "modified": "2026-05-15 11:08:47.801053",
  "modified_by": "Administrator",
  "module": "Onerc Core",
  "name": "Social Media Sites",
