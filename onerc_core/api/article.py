@@ -85,3 +85,17 @@ def create_article(**kwargs) -> dict:
 	doc = frappe.get_doc(kwargs)
 	doc.insert()
 	return doc.as_dict()
+
+
+@frappe.whitelist(allow_guest=True)
+def get_categories() -> list[dict]:
+	"""
+	Get all active article categories.
+	"""
+	categories = frappe.get_all(
+		"Localisation Category",
+		fields=["name", "category_name", "description"],
+		filters={"is_active": 1},
+		order_by="category_name asc"
+	)
+	return categories
