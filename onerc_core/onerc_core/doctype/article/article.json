@@ -38,6 +38,8 @@
   "section_engagement",
   "view_count",
   "allow_comments",
+  "like_count",
+  "comment_count",
   "section_seo",
   "meta_title",
   "meta_description"
@@ -94,9 +96,9 @@
   },
   {
    "fieldname": "pillar",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Pillar",
-   "options": "\nLeadership\nBranch Development\nResource Mobilisation\nFinance Development"
+   "options": "Localization Pillar"
   },
   {
    "fieldname": "section_content",
@@ -237,6 +239,20 @@
    "fieldname": "allow_comments",
    "fieldtype": "Check",
    "label": "Allow Comments"
+  },
+  {
+   "default": "0",
+   "fieldname": "like_count",
+   "fieldtype": "Int",
+   "label": "Like Count",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "comment_count",
+   "fieldtype": "Int",
+   "label": "Comment Count",
+   "read_only": 1
   },
   {
    "collapsible": 1,
