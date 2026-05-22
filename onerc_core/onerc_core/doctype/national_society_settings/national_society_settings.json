@@ -152,11 +152,7 @@
  "issingle": 1,
  "links": [],
  "make_attachments_public": 1,
-<<<<<<< HEAD
  "modified": "2026-05-21 13:53:50.174487",
-=======
- "modified": "2026-05-21 13:46:03.191718",
->>>>>>> 9e6a7fa (.)
  "modified_by": "Administrator",
  "module": "Onerc Core",
  "name": "National Society Settings",
