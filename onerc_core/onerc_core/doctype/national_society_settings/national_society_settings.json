@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:organization_name",
+ "autoname": "autoincrement",
  "creation": "2026-03-26 08:47:59.492477",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -152,10 +152,11 @@
  "issingle": 1,
  "links": [],
  "make_attachments_public": 1,
- "modified": "2026-05-21 13:53:50.174487",
+ "modified": "2026-05-26 09:14:29.022725",
  "modified_by": "Administrator",
  "module": "Onerc Core",
  "name": "National Society Settings",
+ "naming_rule": "Autoincrement",
  "owner": "Administrator",
  "permissions": [
   {
@@ -176,6 +177,6 @@
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],
- "title_field": "organization_name",
+ "title_field": "organization_short_name",
  "track_changes": 1
 }
