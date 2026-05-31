@@ -4,6 +4,7 @@
   "description": null,
   "docstatus": 0,
   "doctype": "Stakeholder Classification",
+  "modified": "2026-05-28 01:09:49.682745",
   "name": "Government"
  },
  {
@@ -11,6 +12,7 @@
   "description": null,
   "docstatus": 0,
   "doctype": "Stakeholder Classification",
+  "modified": "2026-05-28 01:09:49.829074",
   "name": "Private Sector"
  },
  {
@@ -18,6 +20,7 @@
   "description": null,
   "docstatus": 0,
   "doctype": "Stakeholder Classification",
+  "modified": "2026-05-28 01:09:49.852924",
   "name": "Donor"
  },
  {
@@ -25,6 +28,7 @@
   "description": null,
   "docstatus": 0,
   "doctype": "Stakeholder Classification",
+  "modified": "2026-05-28 01:09:49.878649",
   "name": "Peer Organization"
  },
  {
@@ -32,6 +36,7 @@
   "description": null,
   "docstatus": 0,
   "doctype": "Stakeholder Classification",
+  "modified": "2026-05-28 01:09:49.899540",
   "name": "Implementing Partner"
  },
  {
@@ -39,6 +44,7 @@
   "description": null,
   "docstatus": 0,
   "doctype": "Stakeholder Classification",
+  "modified": "2026-05-28 01:09:49.927449",
   "name": "Potential Donor"
  }
 ]

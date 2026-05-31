@@ -4,6 +4,7 @@
   "docstatus": 0,
   "doctype": "Stakeholder Entity",
   "entity_name": "Organisation",
+  "modified": "2026-05-28 01:09:50.027533",
   "name": "Organisation"
  },
  {
@@ -11,6 +12,7 @@
   "docstatus": 0,
   "doctype": "Stakeholder Entity",
   "entity_name": "Consortium",
+  "modified": "2026-05-28 01:09:50.074155",
   "name": "Consortium"
  },
  {
@@ -18,6 +20,7 @@
   "docstatus": 0,
   "doctype": "Stakeholder Entity",
   "entity_name": "Individual",
+  "modified": "2026-05-28 01:09:50.105996",
   "name": "Individual"
  }
 ]
