@@ -1,0 +1,140 @@
+{
+ "actions": [],
+ "autoname": "STRF-.YYYY.-.#####",
+ "creation": "2026-06-03 09:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "file_name",
+  "storage_backend",
+  "storage_key",
+  "column_break_basic",
+  "file_url",
+  "file_size",
+  "content_type",
+  "is_private",
+  "source_section",
+  "source_app",
+  "source_doctype",
+  "source_document",
+  "column_break_source",
+  "uploaded_at",
+  "frappe_file"
+ ],
+ "fields": [
+  {
+   "fieldname": "file_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "File Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "storage_backend",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Storage Backend",
+   "options": "OneRC Storage Backend",
+   "reqd": 1
+  },
+  {
+   "fieldname": "storage_key",
+   "fieldtype": "Data",
+   "label": "Storage Key",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_basic",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "file_url",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "File URL"
+  },
+  {
+   "fieldname": "file_size",
+   "fieldtype": "Int",
+   "label": "File Size (bytes)"
+  },
+  {
+   "fieldname": "content_type",
+   "fieldtype": "Data",
+   "label": "Content Type"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_private",
+   "fieldtype": "Check",
+   "label": "Private"
+  },
+  {
+   "fieldname": "source_section",
+   "fieldtype": "Section Break",
+   "label": "Source"
+  },
+  {
+   "fieldname": "source_app",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Source App"
+  },
+  {
+   "fieldname": "source_doctype",
+   "fieldtype": "Data",
+   "label": "Source DocType"
+  },
+  {
+   "fieldname": "source_document",
+   "fieldtype": "Data",
+   "label": "Source Document"
+  },
+  {
+   "fieldname": "column_break_source",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "uploaded_at",
+   "fieldtype": "Datetime",
+   "label": "Uploaded At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "frappe_file",
+   "fieldtype": "Link",
+   "label": "Frappe File",
+   "options": "File"
+  }
+ ],
+ "links": [],
+ "modified": "2026-06-03 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Onerc Storage",
+ "name": "OneRC Storage File",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "export": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Read Only"
+  }
+ ],
+ "row_format": "Dynamic",
+ "track_changes": 1
+}

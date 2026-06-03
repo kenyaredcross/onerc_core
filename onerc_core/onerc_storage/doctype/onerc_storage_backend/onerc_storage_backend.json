@@ -1,0 +1,167 @@
+{
+ "actions": [],
+ "autoname": "field:backend_name",
+ "creation": "2026-06-03 09:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "backend_name",
+  "label",
+  "backend_type",
+  "column_break_basic",
+  "is_active",
+  "is_default",
+  "bucket_section",
+  "bucket_name",
+  "folder_prefix",
+  "credentials_section",
+  "endpoint_url",
+  "region",
+  "access_key_id",
+  "secret_access_key",
+  "access_section",
+  "signed_url_expiry",
+  "make_public",
+  "usage_section",
+  "purpose",
+  "app_binding"
+ ],
+ "fields": [
+  {
+   "fieldname": "backend_name",
+   "fieldtype": "Data",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "label": "Backend Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Label",
+   "reqd": 1
+  },
+  {
+   "fieldname": "backend_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Backend Type",
+   "options": "Cloudflare R2\nAWS S3\nBackblaze B2\nMinIO\nLocal (Frappe default)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_basic",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Active"
+  },
+  {
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Default"
+  },
+  {
+   "fieldname": "bucket_section",
+   "fieldtype": "Section Break",
+   "label": "Bucket Configuration"
+  },
+  {
+   "fieldname": "bucket_name",
+   "fieldtype": "Data",
+   "label": "Bucket Name"
+  },
+  {
+   "fieldname": "folder_prefix",
+   "fieldtype": "Data",
+   "label": "Folder Prefix"
+  },
+  {
+   "fieldname": "credentials_section",
+   "fieldtype": "Section Break",
+   "label": "Credentials"
+  },
+  {
+   "fieldname": "endpoint_url",
+   "fieldtype": "Data",
+   "label": "Endpoint URL"
+  },
+  {
+   "fieldname": "region",
+   "fieldtype": "Data",
+   "label": "Region"
+  },
+  {
+   "fieldname": "access_key_id",
+   "fieldtype": "Password",
+   "label": "Access Key ID"
+  },
+  {
+   "fieldname": "secret_access_key",
+   "fieldtype": "Password",
+   "label": "Secret Access Key"
+  },
+  {
+   "fieldname": "access_section",
+   "fieldtype": "Section Break",
+   "label": "Access"
+  },
+  {
+   "default": "3600",
+   "fieldname": "signed_url_expiry",
+   "fieldtype": "Int",
+   "label": "Signed URL Expiry (seconds)"
+  },
+  {
+   "fieldname": "make_public",
+   "fieldtype": "Check",
+   "label": "Make Public"
+  },
+  {
+   "fieldname": "usage_section",
+   "fieldtype": "Section Break",
+   "label": "Usage"
+  },
+  {
+   "fieldname": "purpose",
+   "fieldtype": "Small Text",
+   "label": "Purpose"
+  },
+  {
+   "fieldname": "app_binding",
+   "fieldtype": "Data",
+   "label": "App Binding"
+  }
+ ],
+ "links": [],
+ "modified": "2026-06-03 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Onerc Storage",
+ "name": "OneRC Storage Backend",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "track_changes": 1
+}
