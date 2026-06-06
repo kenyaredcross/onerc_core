@@ -15,7 +15,6 @@
   "article_type",
   "category",
   "location",
-  "pillar",
   "section_content",
   "summary",
   "body",
@@ -93,12 +92,6 @@
    "fieldname": "location",
    "fieldtype": "Data",
    "label": "Location"
-  },
-  {
-   "fieldname": "pillar",
-   "fieldtype": "Link",
-   "label": "Pillar",
-   "options": "Localization Pillar"
   },
   {
    "fieldname": "section_content",

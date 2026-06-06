@@ -6,6 +6,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "organization_tab",
   "organization_identity_section",
   "organization_name",
   "organization_short_name",
@@ -26,9 +27,37 @@
   "secondary_color",
   "column_break_ysri",
   "accent_color",
-  "background"
+  "background",
+  "geography_tab",
+  "geography_section",
+  "root_geo_label",
+  "geo_code_prefix",
+  "column_break_geo",
+  "default_map_center_lat",
+  "default_map_center_lng",
+  "default_map_zoom",
+  "communication_tab",
+  "communication_section",
+  "sms_enabled",
+  "whatsapp_enabled",
+  "column_break_comm",
+  "default_email_sender_name",
+  "support_email",
+  "community_tab",
+  "community_section",
+  "enable_public_feedback",
+  "enable_public_incident_reporting",
+  "column_break_community",
+  "early_warning_enabled",
+  "early_warning_window_hours",
+  "early_warning_threshold"
  ],
  "fields": [
+  {
+   "fieldname": "organization_tab",
+   "fieldtype": "Tab Break",
+   "label": "Organization"
+  },
   {
    "fieldname": "organization_identity_section",
    "fieldtype": "Section Break",
@@ -137,13 +166,136 @@
   {
    "fieldname": "social_media_section",
    "fieldtype": "Section Break",
-   "label": "Social Media "
+   "label": "Social Media"
   },
   {
    "fieldname": "social_media",
    "fieldtype": "Table",
    "label": "Social Media",
    "options": "Social Media Links"
+  },
+  {
+   "fieldname": "geography_tab",
+   "fieldtype": "Tab Break",
+   "label": "Geography"
+  },
+  {
+   "fieldname": "geography_section",
+   "fieldtype": "Section Break",
+   "label": "Geography Configuration"
+  },
+  {
+   "description": "Label for the top level of the geographic hierarchy, e.g. Region, Mkoa, Federal State",
+   "fieldname": "root_geo_label",
+   "fieldtype": "Data",
+   "label": "Root Geo Label"
+  },
+  {
+   "description": "Optional prefix for auto-generating geo codes",
+   "fieldname": "geo_code_prefix",
+   "fieldtype": "Data",
+   "label": "Geo Code Prefix"
+  },
+  {
+   "fieldname": "column_break_geo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_map_center_lat",
+   "fieldtype": "Float",
+   "label": "Default Map Center Latitude"
+  },
+  {
+   "fieldname": "default_map_center_lng",
+   "fieldtype": "Float",
+   "label": "Default Map Center Longitude"
+  },
+  {
+   "default": "7",
+   "fieldname": "default_map_zoom",
+   "fieldtype": "Int",
+   "label": "Default Map Zoom"
+  },
+  {
+   "fieldname": "communication_tab",
+   "fieldtype": "Tab Break",
+   "label": "Communication"
+  },
+  {
+   "fieldname": "communication_section",
+   "fieldtype": "Section Break",
+   "label": "Channels"
+  },
+  {
+   "default": "0",
+   "fieldname": "sms_enabled",
+   "fieldtype": "Check",
+   "label": "SMS Enabled"
+  },
+  {
+   "default": "0",
+   "fieldname": "whatsapp_enabled",
+   "fieldtype": "Check",
+   "label": "WhatsApp Enabled"
+  },
+  {
+   "fieldname": "column_break_comm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_email_sender_name",
+   "fieldtype": "Data",
+   "label": "Default Email Sender Name"
+  },
+  {
+   "fieldname": "support_email",
+   "fieldtype": "Data",
+   "label": "Support Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "community_tab",
+   "fieldtype": "Tab Break",
+   "label": "Community"
+  },
+  {
+   "fieldname": "community_section",
+   "fieldtype": "Section Break",
+   "label": "Public Access"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_public_feedback",
+   "fieldtype": "Check",
+   "label": "Enable Public Feedback"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_public_incident_reporting",
+   "fieldtype": "Check",
+   "label": "Enable Public Incident Reporting"
+  },
+  {
+   "fieldname": "column_break_community",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "early_warning_enabled",
+   "fieldtype": "Check",
+   "label": "Early Warning Enabled"
+  },
+  {
+   "default": "24",
+   "fieldname": "early_warning_window_hours",
+   "fieldtype": "Int",
+   "label": "Early Warning Window (Hours)"
+  },
+  {
+   "default": "3",
+   "fieldname": "early_warning_threshold",
+   "fieldtype": "Int",
+   "label": "Early Warning Threshold"
   }
  ],
  "grid_page_length": 50,
@@ -152,7 +304,7 @@
  "issingle": 1,
  "links": [],
  "make_attachments_public": 1,
- "modified": "2026-05-26 09:14:29.022725",
+ "modified": "2026-06-06 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Onerc Core",
  "name": "National Society Settings",

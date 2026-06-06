@@ -107,7 +107,7 @@
    "fieldtype": "Link",
    "in_standard_filter": 1,
    "label": "Organization",
-   "options": "National Society"
+   "options": "Company"
   },
   {
    "default": "FAQ-.category.-.#####",

@@ -2,11 +2,12 @@ import frappe
 from frappe import _
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist()
 def update_organization_settings(**kwargs):
 	"""
 	Update organization settings in National Society Settings.
 	"""
+	frappe.only_for(["System Manager", "HQ Admin"])
 
 	try:
 		settings = frappe.get_single("National Society Settings")

@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "GEO.-.{geo_level}.-.{geo_name}",
+ "autoname": "GEO.-.{geo_level}.-.{geo_node_name}",
  "creation": "2026-04-19 09:04:48.125148",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -15,10 +15,19 @@
   "geo_node_name",
   "geo_level",
   "geo_level_order",
+  "geo_code",
+  "is_active",
   "column_break_jybh",
   "parent_geo_node",
-  "geo_code",
-  "is_group"
+  "is_group",
+  "mapping_section",
+  "latitude",
+  "longitude",
+  "population_estimate",
+  "ancestors_section",
+  "level_1_node",
+  "level_2_node",
+  "level_3_node"
  ],
  "fields": [
   {
@@ -68,7 +77,7 @@
    "fieldtype": "Section Break"
   },
   {
-   "description": "The actual name of the place eg. Nairobi, Kampala",
+   "description": "The actual name of the place e.g. Nairobi, Kampala",
    "fieldname": "geo_node_name",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -90,6 +99,13 @@
    "label": "Geo Code"
   },
   {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  },
+  {
    "fieldname": "column_break_jybh",
    "fieldtype": "Column Break"
   },
@@ -98,18 +114,67 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "geo_level.level_order",
+   "fetch_from": "geo_level.geo_level_order",
    "fetch_if_empty": 1,
    "fieldname": "geo_level_order",
    "fieldtype": "Int",
-   "label": "Geo Level Order"
+   "label": "Geo Level Order",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "mapping_section",
+   "fieldtype": "Section Break",
+   "label": "Mapping"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude"
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude"
+  },
+  {
+   "fieldname": "population_estimate",
+   "fieldtype": "Int",
+   "label": "Population Estimate"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "ancestors_section",
+   "fieldtype": "Section Break",
+   "label": "Ancestor Nodes"
+  },
+  {
+   "fieldname": "level_1_node",
+   "fieldtype": "Link",
+   "label": "Level 1 Node",
+   "options": "Geo Node",
+   "read_only": 1
+  },
+  {
+   "fieldname": "level_2_node",
+   "fieldtype": "Link",
+   "label": "Level 2 Node",
+   "options": "Geo Node",
+   "read_only": 1
+  },
+  {
+   "fieldname": "level_3_node",
+   "fieldtype": "Link",
+   "label": "Level 3 Node",
+   "options": "Geo Node",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_tree": 1,
  "links": [],
- "modified": "2026-04-19 14:04:42.661172",
+ "modified": "2026-06-06 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Onerc Core",
  "name": "Geo Node",
@@ -134,8 +199,8 @@
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
  "show_title_field_in_link": 1,
- "sort_field": "creation",
- "sort_order": "DESC",
+ "sort_field": "geo_node_name",
+ "sort_order": "ASC",
  "states": [],
  "title_field": "geo_node_name"
 }

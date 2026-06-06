@@ -40,7 +40,7 @@ def submit_feedback(feedback_type, message, subject=None, email=None):
 @frappe.whitelist()
 def get_feedback_list(status=None, feedback_type=None, page=1, page_size=20):
 	"""Return a paginated list of feedback records"""
-	# frappe.only_for("LH Admin", "System Manager")
+	frappe.only_for(["System Manager", "HQ Admin", "EOC Agent"])
 
 	page = max(1, int(page))
 	page_size = min(100, max(1, int(page_size)))
@@ -74,7 +74,7 @@ def get_feedback_list(status=None, feedback_type=None, page=1, page_size=20):
 @frappe.whitelist()
 def update_feedback(name, status, reviewer_notes=None):
 	"""Update the status of a Feedback record"""
-	frappe.only_for("LH Admin" ,"System Manager")
+	frappe.only_for(["System Manager", "HQ Admin"])
 
 	allowed_statuses = ("Reviewed", "Resolved", "Closed")
 	if status not in allowed_statuses:
