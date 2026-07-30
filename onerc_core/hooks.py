@@ -290,3 +290,43 @@ fixtures = [
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
+
+# Hooks onerc_core consumes from other apps
+# -----------------------------------------
+#
+# Core defines these; satellite apps implement them. Core never imports a
+# satellite, so both are dependency-inverted: the other app registers itself.
+#
+# onerc_affiliation_providers — how rebuild_affiliations() discovers what to
+# rebuild a Red Profile's affiliation index from. Each provider declares the
+# satellite doctypes it owns and returns the profile's live affiliations:
+#
+# 	onerc_affiliation_providers = ["vmmsx.volunteer.affiliations.provide"]
+#
+# 	def provide(profile: str) -> dict:
+# 		return {
+# 			"reference_doctypes": ["Volunteer"],
+# 			"affiliations": [
+# 				{
+# 					"affiliation_type": "volunteer",
+# 					"status": "Active",
+# 					"reference_doctype": "Volunteer",
+# 					"reference_name": "VOL-00042",
+# 				}
+# 			],
+# 		}
+#
+# A row is only ever removed when a registered provider owns its
+# reference_doctype and did not claim it. No providers means no ownership, so a
+# rebuild on a site with no satellites installed is a read-only no-op.
+# See onerc_core/identity/services/affiliation.py.
+#
+# onerc_capability_resolver — how the read gate asks whether a user holds a
+# capability. Exactly one app may own it, and with none installed every gated
+# affiliation row is hidden from everyone:
+#
+# 	onerc_capability_resolver = "some_app.capabilities.has_capability"
+#
+# 	def has_capability(user: str, capability: str) -> bool: ...
+#
+# See onerc_core/identity/services/read_gate.py.

@@ -1,0 +1,110 @@
+# Copyright (c) 2026, Kelvin Njenga and contributors
+# For license information, please see license.txt
+
+import frappe
+from frappe import _
+from frappe.model.document import Document
+from frappe.model.naming import make_autoname
+
+from onerc_core.onerc_core.doctype.red_profile_affiliation.red_profile_affiliation import (
+	SATELLITE_OWNED_FIELDS,
+)
+
+RED_PROFILE_NAMING_SERIES = "RP-.#####"
+
+# What makes two affiliation rows the same row, for the purpose of noticing that
+# something wrote to the table without going through the service.
+_ROW_IDENTITY_FIELDS = ("affiliation_type", *SATELLITE_OWNED_FIELDS)
+
+
+class RedProfile(Document):
+	"""One record per party, ever. The identity spine.
+
+	Thin on purpose: who someone is, and an index of their affiliations. No
+	domain data — a volunteer's skills and a member's fee live in satellite
+	doctypes in other apps that link back here.
+	"""
+
+	def autoname(self):
+		# Opaque, like Geo Node and for the same reason. `email` is the current
+		# identifier, but it is a *field*: keeping it out of the primary key is
+		# what makes improving identity resolution a config change later rather
+		# than a migration of every foreign key in every app.
+		self.name = make_autoname(RED_PROFILE_NAMING_SERIES)
+
+	def onload(self):
+		# Gated affiliations are stripped server-side, before the document
+		# reaches any client. The *existence* of such an affiliation is itself
+		# sensitive, so this cannot be left to the UI.
+		from onerc_core.identity.services import read_gate
+
+		read_gate.apply(self)
+
+	def validate(self):
+		self.normalise_email()
+		self.set_full_name()
+		self.guard_affiliations_are_service_written()
+
+	def normalise_email(self):
+		"""Lowercased and trimmed, so uniqueness means what it looks like.
+
+		Without this, Ann@example.com and ann@example.com are two people on a
+		case-sensitive collation and one duplicate-key error on a case-
+		insensitive one. Neither is the behaviour anyone wants from an
+		identifier.
+		"""
+		self.email = (self.email or "").strip().lower()
+
+	def set_full_name(self):
+		"""Composed, read-only. Display only — never logic."""
+		parts = (self.first_name, self.middle_name, self.last_name)
+		self.full_name = " ".join(part.strip() for part in parts if part and part.strip())
+
+	def guard_affiliations_are_service_written(self):
+		"""Keep the affiliation index derived, by refusing writes from elsewhere.
+
+		Design 2: this table is a denormalised index whose truth lives in
+		satellite doctypes in other apps. A write that did not come through
+		`set_affiliation()` cannot have been checked against a satellite, so it
+		is not applied. Field-level `read_only` stops the form; this stops the
+		API, an import, and a satellite that reached into the child table.
+
+		The two cases differ on purpose:
+
+		* On an **existing** profile the persisted rows are put back and the
+		  save continues. A reader whose gated rows were stripped on load will
+		  post the document back without them, and must still be able to edit
+		  an unrelated field like `phone` without silently deleting rows they
+		  were never allowed to see.
+		* On a **new** profile there is nothing to put back and no such reader,
+		  so inline rows can only be a programming error. Those are rejected
+		  loudly rather than dropped quietly.
+		"""
+		if self.flags.affiliations_from_service:
+			return
+
+		# Populated by check_if_latest() before validate() runs — but only for
+		# updates. None here means this is an insert.
+		before = self.get_doc_before_save()
+
+		if before is None:
+			if self.affiliations:
+				frappe.throw(
+					_(
+						"Affiliations cannot be set directly. Insert the profile first, then let the"
+						" satellite record write its own row through set_affiliation()."
+					),
+					title=_("Affiliations Are Derived"),
+				)
+
+			return
+
+		if _signature(self.affiliations) == _signature(before.affiliations):
+			return
+
+		self.set("affiliations", [row.as_dict() for row in before.affiliations])
+
+
+def _signature(rows) -> list[tuple]:
+	"""Order-independent content fingerprint of an affiliation table."""
+	return sorted(tuple(str(row.get(field) or "") for field in _ROW_IDENTITY_FIELDS) for row in (rows or []))
