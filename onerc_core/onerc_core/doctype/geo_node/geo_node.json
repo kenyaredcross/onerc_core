@@ -1,7 +1,6 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "GEO.-.{geo_level}.-.{geo_name}",
  "creation": "2026-04-19 09:04:48.125148",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -14,7 +13,6 @@
   "section_break_ximj",
   "geo_node_name",
   "geo_level",
-  "geo_level_order",
   "column_break_jybh",
   "parent_geo_node",
   "geo_code",
@@ -60,7 +58,6 @@
    "fieldtype": "Link",
    "ignore_user_permissions": 1,
    "label": "Parent Geo Node",
-   "mandatory_depends_on": "eval: doc.geo_level_order > 1",
    "options": "Geo Node"
   },
   {
@@ -96,13 +93,6 @@
   {
    "fieldname": "column_break_kdix",
    "fieldtype": "Column Break"
-  },
-  {
-   "fetch_from": "geo_level.level_order",
-   "fetch_if_empty": 1,
-   "fieldname": "geo_level_order",
-   "fieldtype": "Int",
-   "label": "Geo Level Order"
   }
  ],
  "grid_page_length": 50,
@@ -113,7 +103,7 @@
  "modified_by": "Administrator",
  "module": "Onerc Core",
  "name": "Geo Node",
- "naming_rule": "Expression",
+ "naming_rule": "",
  "nsm_parent_field": "parent_geo_node",
  "owner": "Administrator",
  "permissions": [

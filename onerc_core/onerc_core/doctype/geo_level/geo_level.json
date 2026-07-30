@@ -50,7 +50,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "0",
+   "default": "1",
    "fieldname": "is_active",
    "fieldtype": "Check",
    "label": "Is Active"
@@ -73,6 +73,7 @@
    "fieldname": "geo_level_key",
    "fieldtype": "Data",
    "label": "Geo Level Key",
+   "reqd": 1,
    "unique": 1
   },
   {
