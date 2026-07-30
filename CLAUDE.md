@@ -59,6 +59,14 @@ The `affiliations` child table is a **denormalised index, never the source of tr
 
 An Affiliation Type may set `requires_gated_read`. When a Red Profile is read, affiliation rows of a gated type are hidden from readers who lack the gating capability. The *existence* of such an affiliation (e.g. beneficiary) is itself sensitive. Enforce this in a service on every read path, not in the UI.
 
+### The gate's boundary — read this before writing any affiliation query
+
+Gated affiliations are protected **on document reads**: `read_gate.get_affiliations(profile)` for code, and `RedProfile.onload()` for the desk and any API returning a whole document.
+
+**Never `frappe.get_all("Red Profile Affiliation", ...)` in a user-facing path.** It bypasses the gate by design — it is a direct child-table query and the gate lives above it. The same is true of `frappe.get_doc("Red Profile", ...)`, which returns every row because it is trusted server-side access. That is precisely why the service exists: anything whose result reaches a user goes through `get_affiliations()`.
+
+A quick query is how a gated affiliation leaks. If you need affiliation data for a user-facing screen, report, or API, call the service.
+
 ---
 
 ## Services onerc_core must expose
@@ -66,7 +74,8 @@ An Affiliation Type may set `requires_gated_read`. When a Red Profile is read, a
 - **Geo adapter** — `get_root_regions`, `get_children`, `get_ancestors` (nearest-first, ordered by `geo_level_order` via join), `get_descendants`, `get_level`, `level_labels`, `is_leaf`, `get_full_path`, `resolve_upward(node, predicate)`, `matches_scope(node, target, allow_ancestor)`. Uses NestedSet `lft`/`rgt`, never recursion.
 - **`set_affiliation(profile, affiliation_type, status, reference_doctype, reference_name, start_date=None, end_date=None)`** — the single controlled entry point satellites use to write/update their index row. Enforces the read-only-status and one-row-per-type rules.
 - **`rebuild_affiliations(profile)`** — regenerates a profile's affiliation list from its live satellites. The safety net for Design 2.
-- **Read-gate service** — filters gated affiliation rows on read.
+- **Read-gate service** — `get_affiliations(profile, user=None)` filters gated affiliation rows on read. Applied to the desk read path by `RedProfile.onload()`. Direct child-table queries bypass it — see the boundary note above.
+- **`get_ui_config()`** — the whole of National Society Settings a product UI needs, in one call: branding, theme tokens, locale, terminology, feature toggles, validation policy.
 
 ---
 
@@ -75,5 +84,7 @@ An Affiliation Type may set `requires_gated_read`. When a Red Profile is read, a
 - Identity + geo foundation lives here in `onerc_core`, unprefixed, so future OneRC sites share it.
 - `onerc_vmms` (the legacy app) is **not** used. Do not import from it or install it on the same site — it defines colliding Geo Level / Geo Node doctypes.
 - Affiliations are Design 2 (derived index), not a source of truth.
+- **There is no `clear_affiliation()`.** A satellite that is deleted calls `rebuild_affiliations(profile)` from its `on_trash`. One removal path, not two.
+- Satellite apps register themselves with core, never the reverse: `onerc_affiliation_providers` for affiliation rebuilds, `onerc_capability_resolver` for the read gate. Core imports no satellite app. Both hooks are documented at the end of `hooks.py`.
 - The word is **affiliation**, not capacity.
 - Do **not** add a `required_apps` dependency on `onerc_knowledge_hub` / `localisation_hub` yet — note the undeclared Link deps, leave them dormant.

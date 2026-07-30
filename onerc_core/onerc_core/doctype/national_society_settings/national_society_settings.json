@@ -6,6 +6,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "society_tab",
   "organization_identity_section",
   "organization_name",
   "organization_short_name",
@@ -21,14 +22,59 @@
   "physical_address",
   "social_media_section",
   "social_media",
+  "theme_tab",
   "color_scheme_section",
   "primary_color",
   "secondary_color",
   "column_break_ysri",
   "accent_color",
-  "background"
+  "background",
+  "semantic_color_section",
+  "surface_color",
+  "text_color",
+  "column_break_semantic_one",
+  "muted_text_color",
+  "border_color",
+  "status_color_section",
+  "success_color",
+  "warning_color",
+  "column_break_status",
+  "danger_color",
+  "info_color",
+  "typography_section",
+  "font_family",
+  "base_font_size",
+  "column_break_typography",
+  "border_radius",
+  "brand_asset_section",
+  "logo_dark",
+  "column_break_assets",
+  "favicon",
+  "locale_tab",
+  "locale_section",
+  "currency",
+  "time_zone",
+  "column_break_locale",
+  "date_format",
+  "time_format",
+  "first_day_of_week",
+  "terminology_tab",
+  "terminology_section",
+  "terminology",
+  "features_tab",
+  "feature_section",
+  "feature_toggles",
+  "validation_tab",
+  "phone_validation_section",
+  "phone_number_pattern",
+  "phone_number_example"
  ],
  "fields": [
+  {
+   "fieldname": "society_tab",
+   "fieldtype": "Tab Break",
+   "label": "Society"
+  },
   {
    "fieldname": "organization_identity_section",
    "fieldtype": "Section Break",
@@ -144,6 +190,219 @@
    "fieldtype": "Table",
    "label": "Social Media",
    "options": "Social Media Links"
+  },
+  {
+   "fieldname": "theme_tab",
+   "fieldtype": "Tab Break",
+   "label": "Theme"
+  },
+  {
+   "description": "Semantic tokens a product UI reads through get_ui_config(). Leave one blank and the consuming UI keeps its own default — an unset token is not a black surface.",
+   "fieldname": "semantic_color_section",
+   "fieldtype": "Section Break",
+   "label": "Semantic Colors"
+  },
+  {
+   "fieldname": "surface_color",
+   "fieldtype": "Color",
+   "label": "Surface Color"
+  },
+  {
+   "fieldname": "text_color",
+   "fieldtype": "Color",
+   "label": "Text Color"
+  },
+  {
+   "fieldname": "column_break_semantic_one",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "muted_text_color",
+   "fieldtype": "Color",
+   "label": "Muted Text Color"
+  },
+  {
+   "fieldname": "border_color",
+   "fieldtype": "Color",
+   "label": "Border Color"
+  },
+  {
+   "fieldname": "status_color_section",
+   "fieldtype": "Section Break",
+   "label": "Status Colors"
+  },
+  {
+   "fieldname": "success_color",
+   "fieldtype": "Color",
+   "label": "Success Color"
+  },
+  {
+   "fieldname": "warning_color",
+   "fieldtype": "Color",
+   "label": "Warning Color"
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "danger_color",
+   "fieldtype": "Color",
+   "label": "Danger Color"
+  },
+  {
+   "fieldname": "info_color",
+   "fieldtype": "Color",
+   "label": "Info Color"
+  },
+  {
+   "fieldname": "typography_section",
+   "fieldtype": "Section Break",
+   "label": "Typography and Shape"
+  },
+  {
+   "description": "CSS font stack, eg. Inter, system-ui, sans-serif",
+   "fieldname": "font_family",
+   "fieldtype": "Data",
+   "label": "Font Family"
+  },
+  {
+   "description": "With unit, eg. 16px or 1rem",
+   "fieldname": "base_font_size",
+   "fieldtype": "Data",
+   "label": "Base Font Size"
+  },
+  {
+   "fieldname": "column_break_typography",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "With unit, eg. 8px",
+   "fieldname": "border_radius",
+   "fieldtype": "Data",
+   "label": "Border Radius"
+  },
+  {
+   "fieldname": "brand_asset_section",
+   "fieldtype": "Section Break",
+   "label": "Brand Assets"
+  },
+  {
+   "description": "Used on dark surfaces. Falls back to the main logo when unset.",
+   "fieldname": "logo_dark",
+   "fieldtype": "Attach Image",
+   "label": "Logo (Dark)"
+  },
+  {
+   "fieldname": "column_break_assets",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "favicon",
+   "fieldtype": "Attach Image",
+   "label": "Favicon"
+  },
+  {
+   "fieldname": "locale_tab",
+   "fieldtype": "Tab Break",
+   "label": "Locale"
+  },
+  {
+   "description": "Society-level locale. Anything left blank falls back to System Settings, so this doctype never becomes a second, competing source of truth for site formatting.",
+   "fieldname": "locale_section",
+   "fieldtype": "Section Break",
+   "label": "Locale"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "description": "IANA name, eg. Africa/Nairobi",
+   "fieldname": "time_zone",
+   "fieldtype": "Data",
+   "label": "Time Zone"
+  },
+  {
+   "fieldname": "column_break_locale",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "date_format",
+   "fieldtype": "Select",
+   "label": "Date Format",
+   "options": "\nyyyy-mm-dd\ndd-mm-yyyy\ndd/mm/yyyy\ndd.mm.yyyy\nmm/dd/yyyy\nmm-dd-yyyy"
+  },
+  {
+   "fieldname": "time_format",
+   "fieldtype": "Select",
+   "label": "Time Format",
+   "options": "\nHH:mm:ss\nHH:mm\nhh:mm:ss a\nhh:mm a"
+  },
+  {
+   "fieldname": "first_day_of_week",
+   "fieldtype": "Select",
+   "label": "First Day of Week",
+   "options": "\nMonday\nTuesday\nWednesday\nThursday\nFriday\nSaturday\nSunday"
+  },
+  {
+   "fieldname": "terminology_tab",
+   "fieldtype": "Tab Break",
+   "label": "Terminology"
+  },
+  {
+   "description": "What this society calls things. Keys are free text because core does not own the vocabulary — a product asks for a term and gets the society's word for it, or the key back if there is no override.",
+   "fieldname": "terminology_section",
+   "fieldtype": "Section Break",
+   "label": "Terminology"
+  },
+  {
+   "fieldname": "terminology",
+   "fieldtype": "Table",
+   "label": "Terminology",
+   "options": "Society Terminology"
+  },
+  {
+   "fieldname": "features_tab",
+   "fieldtype": "Tab Break",
+   "label": "Features"
+  },
+  {
+   "description": "Per-society switches. Core defines no feature list: the product that reads a key owns its meaning and its default when the key is absent.",
+   "fieldname": "feature_section",
+   "fieldtype": "Section Break",
+   "label": "Feature Toggles"
+  },
+  {
+   "fieldname": "feature_toggles",
+   "fieldtype": "Table",
+   "label": "Feature Toggles",
+   "options": "Society Feature Toggle"
+  },
+  {
+   "fieldname": "validation_tab",
+   "fieldtype": "Tab Break",
+   "label": "Validation"
+  },
+  {
+   "description": "Policy, not code. A blank pattern means phone numbers are not pattern-checked at all.",
+   "fieldname": "phone_validation_section",
+   "fieldtype": "Section Break",
+   "label": "Phone Numbers"
+  },
+  {
+   "description": "Python regular expression matched against the whole number, eg. ^(\\+254|0)[17]\\d{8}$",
+   "fieldname": "phone_number_pattern",
+   "fieldtype": "Data",
+   "label": "Phone Number Pattern"
+  },
+  {
+   "description": "Shown to the user when a number does not match, eg. +254712345678",
+   "fieldname": "phone_number_example",
+   "fieldtype": "Data",
+   "label": "Phone Number Example"
   }
  ],
  "grid_page_length": 50,
@@ -152,7 +411,7 @@
  "issingle": 1,
  "links": [],
  "make_attachments_public": 1,
- "modified": "2026-05-26 09:14:29.022725",
+ "modified": "2026-07-30 10:10:00.000000",
  "modified_by": "Administrator",
  "module": "Onerc Core",
  "name": "National Society Settings",
