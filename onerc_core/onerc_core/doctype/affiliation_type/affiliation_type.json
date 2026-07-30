@@ -1,0 +1,111 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:affiliation_type_key",
+ "creation": "2026-07-30 09:10:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "type_identity_section",
+  "affiliation_type_name",
+  "affiliation_type_key",
+  "column_break_ident",
+  "is_active",
+  "description",
+  "read_gating_section",
+  "requires_gated_read",
+  "gating_capability"
+ ],
+ "fields": [
+  {
+   "fieldname": "type_identity_section",
+   "fieldtype": "Section Break",
+   "label": "Type Identity"
+  },
+  {
+   "description": "What a person <i>is</i> to the society, eg. Volunteer, Member, Vendor, Beneficiary, Donor, Staff. Not a capability — never what a user is allowed to do.",
+   "fieldname": "affiliation_type_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Affiliation Type Name",
+   "reqd": 1
+  },
+  {
+   "description": "Stable key used by satellite apps, eg. volunteer, member.",
+   "fieldname": "affiliation_type_key",
+   "fieldtype": "Data",
+   "label": "Affiliation Type Key",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_ident",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "read_gating_section",
+   "fieldtype": "Section Break",
+   "label": "Read Gating"
+  },
+  {
+   "default": "0",
+   "description": "When set, the <i>existence</i> of this affiliation is sensitive. Rows of this type are hidden on read from anyone without the gating capability below.",
+   "fieldname": "requires_gated_read",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Requires Gated Read"
+  },
+  {
+   "depends_on": "requires_gated_read",
+   "description": "Capability key resolved by whichever app owns capabilities. A capability, never a role name.",
+   "fieldname": "gating_capability",
+   "fieldtype": "Data",
+   "label": "Gating Capability",
+   "mandatory_depends_on": "requires_gated_read"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-30 09:10:00.000000",
+ "modified_by": "Administrator",
+ "module": "Onerc Core",
+ "name": "Affiliation Type",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "show_title_field_in_link": 1,
+ "sort_field": "affiliation_type_name",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "affiliation_type_name",
+ "track_changes": 1
+}

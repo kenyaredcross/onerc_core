@@ -1,0 +1,151 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-30 09:14:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "identity_section",
+  "first_name",
+  "middle_name",
+  "last_name",
+  "column_break_name",
+  "full_name",
+  "contact_section",
+  "email",
+  "phone",
+  "column_break_contact",
+  "user",
+  "location_section",
+  "home_geo_node",
+  "affiliations_section",
+  "affiliations"
+ ],
+ "fields": [
+  {
+   "fieldname": "identity_section",
+   "fieldtype": "Section Break",
+   "label": "Identity"
+  },
+  {
+   "fieldname": "first_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "First Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "middle_name",
+   "fieldtype": "Data",
+   "label": "Middle Name"
+  },
+  {
+   "fieldname": "last_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Last Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_name",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Composed from the name fields. For display only — never branch on it.",
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Full Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contact_section",
+   "fieldtype": "Section Break",
+   "label": "Contact"
+  },
+  {
+   "description": "The current unique identifier. A field, not the docname, so identity resolution can be improved later without a migration.",
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Email",
+   "options": "Email",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "column_break_contact",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Optional. Not everyone with a profile can log in — beneficiaries, imports and staff-entered records have no user.",
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User",
+   "unique": 1
+  },
+  {
+   "fieldname": "location_section",
+   "fieldtype": "Section Break",
+   "label": "Location"
+  },
+  {
+   "fieldname": "home_geo_node",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Home Geo Node",
+   "options": "Geo Node"
+  },
+  {
+   "description": "A derived index, not a source of truth. Written only by set_affiliation(); the satellite named on each row owns the answer.",
+   "fieldname": "affiliations_section",
+   "fieldtype": "Section Break",
+   "label": "Affiliations"
+  },
+  {
+   "fieldname": "affiliations",
+   "fieldtype": "Table",
+   "label": "Affiliations",
+   "options": "Red Profile Affiliation",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-30 09:14:00.000000",
+ "modified_by": "Administrator",
+ "module": "Onerc Core",
+ "name": "Red Profile",
+ "naming_rule": "",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "search_fields": "email,phone",
+ "show_title_field_in_link": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "full_name",
+ "track_changes": 1
+}
