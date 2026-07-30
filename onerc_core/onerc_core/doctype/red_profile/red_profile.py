@@ -43,6 +43,7 @@ class RedProfile(Document):
 	def validate(self):
 		self.normalise_email()
 		self.set_full_name()
+		self.validate_phone_number()
 		self.guard_affiliations_are_service_written()
 
 	def normalise_email(self):
@@ -59,6 +60,18 @@ class RedProfile(Document):
 		"""Composed, read-only. Display only — never logic."""
 		parts = (self.first_name, self.middle_name, self.last_name)
 		self.full_name = " ".join(part.strip() for part in parts if part and part.strip())
+
+	def validate_phone_number(self):
+		"""Checked against the society's configured pattern — never a regex here.
+
+		A society that has not declared its numbering plan does not get one
+		invented for it: no pattern configured means no check.
+		"""
+		from onerc_core.society.services import config
+
+		self.phone = (self.phone or "").strip()
+
+		config.validate_phone_number(self.phone, self.meta.get_label("phone"))
 
 	def guard_affiliations_are_service_written(self):
 		"""Keep the affiliation index derived, by refusing writes from elsewhere.

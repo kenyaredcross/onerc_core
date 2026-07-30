@@ -45,7 +45,7 @@ class TestReadGate(IntegrationTestCase):
 		)
 
 	def _visible_types(self):
-		return {row["affiliation_type"] for row in read_gate.visible_affiliations(self.profile)}
+		return {row["affiliation_type"] for row in read_gate.get_affiliations(self.profile)}
 
 	def test_both_rows_are_stored(self):
 		"""The gate is a read concern. Storage is unaffected."""
@@ -125,11 +125,11 @@ class TestReadGate(IntegrationTestCase):
 			{self.volunteer_type, self.beneficiary_type},
 		)
 
-	def test_visible_affiliations_accepts_a_loaded_document(self):
+	def test_get_affiliations_accepts_a_loaded_document(self):
 		doc = frappe.get_doc("Red Profile", self.profile)
 
 		with self.patch_hooks({CAPABILITY_RESOLVER_HOOK: [fixtures.RESOLVER_GRANT]}):
-			rows = read_gate.visible_affiliations(doc)
+			rows = read_gate.get_affiliations(doc)
 
 		self.assertEqual(len(rows), 2)
 

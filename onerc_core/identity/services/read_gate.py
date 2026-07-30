@@ -48,7 +48,7 @@ def apply(profile_doc, user: str | None = None) -> None:
 	profile_doc.set("affiliations", [row.as_dict() for row in visible])
 
 
-def visible_affiliations(profile, user: str | None = None) -> list[dict]:
+def get_affiliations(profile, user: str | None = None) -> list[dict]:
 	"""A profile's affiliation rows, gated ones removed.
 
 	The supported read path for code. Pass a docname or a loaded document.
