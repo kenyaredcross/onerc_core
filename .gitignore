@@ -53,3 +53,10 @@ jspm_packages/
 
 # Aider AI Chat
 .aider*
+
+# Vendored simple-icons set (~3,400 SVGs, 15 MB). Re-download from
+# simpleicons.org as needed; see public/icons/social/README.md.
+onerc_core/public/icons/social/*.svg
+
+# WSL / Windows alternate data streams
+*:Zone.Identifier
