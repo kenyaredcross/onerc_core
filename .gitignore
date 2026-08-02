@@ -60,3 +60,6 @@ onerc_core/public/icons/social/*.svg
 
 # WSL / Windows alternate data streams
 *:Zone.Identifier
+
+# Local working notes, not part of the repo
+CLAUDE.md

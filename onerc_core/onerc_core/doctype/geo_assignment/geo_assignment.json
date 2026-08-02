@@ -1,0 +1,120 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-02 09:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "authority_section",
+  "user",
+  "role",
+  "column_break_authority",
+  "geo_node",
+  "is_active",
+  "validity_section",
+  "valid_from",
+  "column_break_validity",
+  "valid_to"
+ ],
+ "fields": [
+  {
+   "fieldname": "authority_section",
+   "fieldtype": "Section Break",
+   "label": "Authority"
+  },
+  {
+   "description": "Who holds the authority. Binds to User, not Red Profile — permission checks happen in User-space.",
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "User",
+   "options": "User",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "description": "The Frappe role granted at this scope. Roles answer <i>what</i> a user may do; this record adds <i>where</i>.",
+   "fieldname": "role",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Role",
+   "options": "Role",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_authority",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "The scope — this node and everything beneath it.",
+   "fieldname": "geo_node",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Geo Node",
+   "options": "Geo Node",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "default": "1",
+   "description": "Deactivate rather than delete, so the audit history survives.",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  },
+  {
+   "description": "Optional bounds for time-limited authority, eg. an acting coordinator. Empty means unbounded in that direction.",
+   "fieldname": "validity_section",
+   "fieldtype": "Section Break",
+   "label": "Validity"
+  },
+  {
+   "fieldname": "valid_from",
+   "fieldtype": "Date",
+   "label": "Valid From"
+  },
+  {
+   "fieldname": "column_break_validity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "valid_to",
+   "fieldtype": "Date",
+   "label": "Valid To"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-02 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Onerc Core",
+ "name": "Geo Assignment",
+ "naming_rule": "",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
