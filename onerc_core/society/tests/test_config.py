@@ -25,14 +25,14 @@ class TestGetUiConfig(IntegrationTestCase):
 	def test_society_block(self):
 		payload = config.get_ui_config()
 
-		self.assertEqual(payload["society"]["name"], fixtures.MANDATORY["organization_name"])
+		self.assertEqual(payload["society"]["name"], fixtures.BASELINE["organization_name"])
 		self.assertEqual(payload["society"]["short_name"], "TNS")
 		self.assertEqual(payload["society"]["country"], "Kenya")
 
 	def test_dark_logo_falls_back_to_the_main_logo(self):
 		payload = config.get_ui_config()
 
-		self.assertEqual(payload["society"]["logo_dark"], fixtures.MANDATORY["logo"])
+		self.assertEqual(payload["society"]["logo_dark"], fixtures.BASELINE["logo"])
 
 	def test_dark_logo_is_used_when_set(self):
 		fixtures.configure(logo_dark="/files/dark.png")

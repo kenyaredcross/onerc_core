@@ -9,7 +9,9 @@ Everything geo goes through this module.
 Two rules hold throughout:
 
 1. Ancestry and descent are resolved with the NestedSet `lft`/`rgt` bounds,
-   never by walking parent links recursively.
+   never by walking parent links recursively — and *ordered* by those bounds
+   too, so "nearest ancestor" means nearest in the tree rather than nearest in
+   the level ladder.
 2. Level order comes from joining to Geo Level. There is no denormalised
    `geo_level_order` on Geo Node, and no framework default ordering is
    trusted — every ordered query names its ORDER BY explicitly.
@@ -85,10 +87,17 @@ def get_children(node: str) -> list[dict]:
 def get_ancestors(node: str) -> list[dict]:
 	"""Ancestors of a node, NEAREST FIRST — immediate parent first, root last.
 
-	Ordering is explicit: `geo_level_order` descending, joined from Geo Level.
-	A deeper level carries a higher order (1 is the top of the hierarchy), so
-	descending order puts the closest ancestor first. `lft` descending is a
-	tiebreak only; the level order is the contract.
+	Nearest-first is the contract, and nearest means *nearest in the tree*.
+	Ordering is `lft` descending, which is tree position and nothing else: every
+	ancestor of a node encloses it, so no two of them can partially overlap, and
+	the one whose `lft` is largest is the innermost — the immediate parent.
+
+	It deliberately does not order by `geo_level_order`. In a well-formed
+	hierarchy the two agree, and Geo Node now refuses a parent at the same or a
+	deeper level so new rows cannot disagree. But level order is configuration a
+	society can renumber, and rows written before that rule existed are still on
+	disk; if the two ever diverge, the tree is the truth. Deriving nearness from
+	the level ladder is how approver routing walks past the true nearest holder.
 	"""
 	lft, rgt = _bounds(node)
 
@@ -98,7 +107,7 @@ def get_ancestors(node: str) -> list[dict]:
 		FROM `tabGeo Node` node
 		INNER JOIN `tabGeo Level` lvl ON lvl.name = node.geo_level
 		WHERE node.lft < %(lft)s AND node.rgt > %(rgt)s
-		ORDER BY lvl.geo_level_order DESC, node.lft DESC
+		ORDER BY node.lft DESC
 		""",
 		{"lft": lft, "rgt": rgt},
 		as_dict=True,

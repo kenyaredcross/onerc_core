@@ -12,9 +12,20 @@ user may hold the same role at several unrelated nodes, and that is expressed as
 several rows, not as one row with a list. Nothing here prevents it, and
 `get_user_geo_scope()` unions the subtrees.
 
-**Liveness is defined once, in this module, and nowhere else.** An assignment
-grants nothing unless it is active and today falls inside its validity window.
-Both the SQL and the in-Python form of that rule live here so the two cannot
+**What an assignment grants is defined once, in this module, and nowhere else.**
+It grants nothing unless two things hold together:
+
+1. it is **live** — active, and today inside its validity window;
+2. the user **still holds the Frappe role** the row names.
+
+The second is what makes off-boarding work. A Geo Assignment does not create
+authority on its own; it places authority a user already has somewhere in the
+tree. Strip the role and the placement has nothing left to place — so removing a
+role revokes every assignment that named it, instantly and everywhere, without
+anyone having to remember to deactivate rows as well. Either half of an
+off-boarding — role removal or deactivating the assignment — fully revokes.
+
+Both the SQL and the in-Python form of the rule live here so the two cannot
 drift; every caller — the scope service, approver routing, all three enforcement
 layers — reads it from here rather than restating `is_active = 1 AND ...`.
 """
@@ -37,21 +48,62 @@ LIVE_SQL = """
 	AND IFNULL(assignment.valid_to, %(on_date)s) >= %(on_date)s
 """
 
+# The role-held rule, as SQL. A join rather than `frappe.get_roles`, because
+# the queries this goes into answer for many users at once — `holders_at()`
+# does not know whose rows it is about until the query has run.
+#
+# The Administrator branch mirrors `frappe.get_roles`, which answers "every
+# role" for Administrator without there being a Has Role row to prove it.
+# Without the branch the SQL and the Python below would disagree about exactly
+# one user. It is a framework primitive, not a society role — the same
+# exception, for the same reason, as the bypass in the scope service.
+ROLE_HELD_SQL = """
+	(
+		assignment.user = 'Administrator'
+		OR EXISTS (
+			SELECT 1
+			FROM `tabHas Role` held
+			WHERE held.parenttype = 'User'
+				AND held.parent = assignment.user
+				AND held.role = assignment.role
+		)
+	)
+"""
+
+# What every reader of this table actually wants to ask. Callers alias
+# `tabGeo Assignment` to `assignment` and bind `on_date`; nobody composes the
+# two halves themselves, because a caller who took only `LIVE_SQL` would grant
+# authority to a user who no longer holds the role.
+GRANTS_AUTHORITY_SQL = f"({LIVE_SQL}) AND {ROLE_HELD_SQL}"
+
+# What is read when a row arrives as a docname. Named once so `is_live()` and
+# `grants_authority()` cannot fetch different halves of the same row.
+_RULE_FIELDS = ["user", "role", "is_active", "valid_from", "valid_to"]
+
+
+def _row(assignment):
+	"""Accept a document, a dict, or a docname; return something with `.get()`."""
+	if not isinstance(assignment, str):
+		return assignment
+
+	return frappe.db.get_value("Geo Assignment", assignment, _RULE_FIELDS, as_dict=True)
+
 
 def is_live(assignment, on_date: str | None = None) -> bool:
-	"""The liveness rule in Python, for a single row already in hand.
+	"""The liveness half of the rule: active, and inside its validity window.
 
 	Mirrors `LIVE_SQL` exactly. Takes a document, a dict, or a docname. Use this
 	rather than re-testing `is_active` and the dates at the call site — that
 	restatement is how the query path and the document path drift apart.
-	"""
-	if isinstance(assignment, str):
-		assignment = frappe.db.get_value(
-			"Geo Assignment", assignment, ["is_active", "valid_from", "valid_to"], as_dict=True
-		)
 
-		if not assignment:
-			return False
+	Liveness alone is not authority. `grants_authority()` is the question worth
+	asking about a row; this is one of its two halves, kept separate only
+	because "is this row still current" is a fair thing to ask on its own.
+	"""
+	assignment = _row(assignment)
+
+	if not assignment:
+		return False
 
 	on_date = getdate(on_date or today())
 
@@ -65,6 +117,35 @@ def is_live(assignment, on_date: str | None = None) -> bool:
 		return False
 
 	return not (valid_to and getdate(valid_to) < on_date)
+
+
+def holds_role(user: str | None, role: str | None) -> bool:
+	"""Does `user` currently hold `role`?
+
+	`frappe.get_roles` rather than a Has Role query of our own: it is the
+	framework's own answer to the question, and it already treats Administrator
+	as holding every role — which is what `ROLE_HELD_SQL` spells out by hand.
+	"""
+	if not (user and role):
+		return False
+
+	return role in frappe.get_roles(user)
+
+
+def grants_authority(assignment, on_date: str | None = None) -> bool:
+	"""Does this row grant anything right now?
+
+	The whole rule, mirroring `GRANTS_AUTHORITY_SQL`: live, *and* the role it
+	names still held by the user it names. This is what callers holding a row
+	should ask — `is_live()` on its own would honour an assignment belonging to
+	someone who was off-boarded by having their roles removed.
+	"""
+	assignment = _row(assignment)
+
+	if not assignment:
+		return False
+
+	return is_live(assignment, on_date) and holds_role(assignment.get("user"), assignment.get("role"))
 
 
 class GeoAssignment(Document):

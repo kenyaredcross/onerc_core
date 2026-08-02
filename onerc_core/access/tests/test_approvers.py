@@ -8,6 +8,7 @@ from frappe.utils import add_days, today
 from onerc_core.access.services import scope
 from onerc_core.access.services.approvers import RULE_AT_LEVEL, resolve_approvers
 from onerc_core.access.tests import fixtures
+from onerc_core.geo.tests import fixtures as geo_fixtures
 
 EXTRA_TEST_RECORD_DEPENDENCIES = []
 
@@ -221,3 +222,124 @@ class TestRoutingAndScopeAgree(ApproverTestCase):
 					scope.get_user_geo_scope(approver, fixtures.APPROVER_ROLE),
 					f"{approver} was routed {node_key} but their scope excludes it",
 				)
+
+
+class TestNearestFollowsTheTreeNotTheLevelLadder(IntegrationTestCase):
+	"""Routing must reach the nearest holder by depth, not by level order.
+
+	The tree here is nested out of level order — Mid carries a deeper level than
+	Inner, the node beneath it::
+
+	    Root   (level order 1)
+	    └── Mid    (level order 3)   ← mid_holder approves here
+	        └── Inner  (level order 2)   ← inner_holder approves here
+	            └── Leaf   (level order 4)
+
+	Inner is Leaf's immediate parent, so `inner_holder` is the nearest holder and
+	must be the one routed to. Deriving nearness from `geo_level_order` puts Mid
+	first and routes the approval past Inner to a more distant authority — a
+	silent misroute, since both answers look like a legitimate approver.
+
+	It does not extend `ApproverTestCase`: this class needs its own hierarchy,
+	not the well-formed one that class builds.
+	"""
+
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		fixtures.reset()
+
+		cls.chain = geo_fixtures.build_misnested_chain(fixtures.LEVEL_PREFIX)
+
+		cls.inner_holder = fixtures.make_user("misnested_inner", [fixtures.APPROVER_ROLE])
+		cls.mid_holder = fixtures.make_user("misnested_mid", [fixtures.APPROVER_ROLE])
+
+		fixtures.make_assignment(cls.inner_holder, fixtures.APPROVER_ROLE, cls.chain["inner"])
+		fixtures.make_assignment(cls.mid_holder, fixtures.APPROVER_ROLE, cls.chain["mid"])
+
+	def test_routes_to_the_nearest_holder_by_depth(self):
+		self.assertEqual(resolve_approvers(self.chain["leaf"], fixtures.APPROVER_ROLE), [self.inner_holder])
+
+	def test_does_not_reach_past_it_to_the_more_distant_holder(self):
+		self.assertNotIn(self.mid_holder, resolve_approvers(self.chain["leaf"], fixtures.APPROVER_ROLE))
+
+	def test_the_distant_holder_still_answers_where_they_are_nearest(self):
+		"""Mid is not wrong, only further away — it still routes at its own node."""
+		self.assertEqual(resolve_approvers(self.chain["mid"], fixtures.APPROVER_ROLE), [self.mid_holder])
+
+	def test_routing_still_agrees_with_scope(self):
+		"""The routed approver must be able to reach what they were routed."""
+		for approver in resolve_approvers(self.chain["leaf"], fixtures.APPROVER_ROLE):
+			self.assertIn(self.chain["leaf"], scope.get_user_geo_scope(approver, fixtures.APPROVER_ROLE))
+
+
+class TestApproversMustStillHoldTheRole(ApproverTestCase):
+	"""Routing follows the same rule as scope: no role, no authority.
+
+	Routing to somebody who has been off-boarded is worse than routing to nobody.
+	An approval sits in a queue addressed to a user who can no longer open it, and
+	nothing about the record says why it stopped moving.
+
+	The walk must also *continue* past them rather than stop: a county whose only
+	holder has been stripped of the role is a county with no holder, so the region
+	above it answers — exactly as it does for an expired assignment.
+	"""
+
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+
+		cls.stripped = fixtures.make_user("stripped_approver", [fixtures.APPROVER_ROLE])
+		cls.regional = fixtures.make_user("still_regional", [fixtures.APPROVER_ROLE])
+
+		fixtures.make_assignment(cls.stripped, fixtures.APPROVER_ROLE, cls.tree["county_a"])
+		fixtures.make_assignment(cls.regional, fixtures.APPROVER_ROLE, cls.tree["region"])
+
+	def setUp(self):
+		super().setUp()
+		self.addCleanup(fixtures.grant_role, self.stripped, fixtures.APPROVER_ROLE)
+
+	def test_the_county_holder_is_resolved_while_they_hold_the_role(self):
+		"""The control."""
+		self.assertEqual(resolve_approvers(self.tree["ward_a1"], fixtures.APPROVER_ROLE), [self.stripped])
+
+	def test_removing_the_role_removes_them_from_the_routing(self):
+		fixtures.strip_role(self.stripped, fixtures.APPROVER_ROLE)
+
+		self.assertNotIn(self.stripped, resolve_approvers(self.tree["ward_a1"], fixtures.APPROVER_ROLE))
+
+	def test_the_walk_continues_past_them_to_the_region(self):
+		fixtures.strip_role(self.stripped, fixtures.APPROVER_ROLE)
+
+		self.assertEqual(resolve_approvers(self.tree["ward_a1"], fixtures.APPROVER_ROLE), [self.regional])
+
+	def test_at_level_routing_drops_them_too(self):
+		"""Both rules read `holders_at`, so neither can honour a stripped role."""
+		fixtures.strip_role(self.stripped, fixtures.APPROVER_ROLE)
+
+		self.assertEqual(
+			resolve_approvers(
+				self.tree["ward_a1"],
+				fixtures.APPROVER_ROLE,
+				rule=RULE_AT_LEVEL,
+				geo_level=self.tree["levels"]["county"],
+			),
+			[],
+		)
+
+	def test_restoring_the_role_restores_the_routing(self):
+		fixtures.strip_role(self.stripped, fixtures.APPROVER_ROLE)
+		self.assertEqual(resolve_approvers(self.tree["ward_a1"], fixtures.APPROVER_ROLE), [self.regional])
+
+		fixtures.grant_role(self.stripped, fixtures.APPROVER_ROLE)
+
+		self.assertEqual(resolve_approvers(self.tree["ward_a1"], fixtures.APPROVER_ROLE), [self.stripped])
+
+	def test_routing_and_scope_still_agree_after_the_role_is_removed(self):
+		"""Neither may honour the row the other has stopped honouring."""
+		fixtures.strip_role(self.stripped, fixtures.APPROVER_ROLE)
+
+		self.assertEqual(scope.get_user_geo_scope(self.stripped, fixtures.APPROVER_ROLE), set())
+
+		for approver in resolve_approvers(self.tree["ward_a1"], fixtures.APPROVER_ROLE):
+			self.assertIn(self.tree["ward_a1"], scope.get_user_geo_scope(approver, fixtures.APPROVER_ROLE))

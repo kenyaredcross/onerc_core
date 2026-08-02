@@ -7,7 +7,10 @@ This is the second reader of Geo Assignment, and it reads it through the same
 helpers as the scope service. That is the whole point of routing and read scope
 sharing one source of truth: the user who appears in `resolve_approvers()` for a
 ward is, necessarily, a user whose `get_user_geo_scope()` covers that ward. They
-are two questions answered from one table, so they cannot disagree.
+are two questions answered from one table, so they cannot disagree — including
+about somebody who has just been stripped of the role, who disappears from both
+at once because both ask `holders_at()` / `live_assignment_nodes()` and neither
+decides for itself what an assignment grants.
 
 **What this module does not decide.** How many approvers must act, in what
 order, whether one may delegate, what happens on rejection — none of that is
@@ -36,10 +39,13 @@ def resolve_approvers(
 	"""Users who can approve at `geo_node` for `role`.
 
 	`rule="nearest_ancestor"` (the default) walks from the node upward and stops
-	at the first node — the node itself counts — where anybody holds a live
-	assignment for the role, returning the holders there. Authority granted high
-	in the tree therefore covers everything below it without needing a row per
-	ward, and a nearer holder always wins over a more distant one.
+	at the first node — the node itself counts — where anybody's assignment for
+	the role still grants, returning the holders there. Authority granted high in
+	the tree therefore covers everything below it without needing a row per ward,
+	and a nearer holder always wins over a more distant one. Nearer means nearer
+	in the tree: the walk is the geo adapter's, ordered by nesting rather than by
+	the level ladder, so a hierarchy nested out of level order still routes to
+	the closest holder.
 
 	`rule="at_level"` ignores nearness and resolves at a named Geo Level: it
 	finds the node at that level in the chain and returns its holders. Use it

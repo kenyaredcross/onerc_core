@@ -153,6 +153,22 @@ def make_user(handle: str, roles: list[str] | None = None) -> str:
 	return email
 
 
+def strip_role(user: str, role: str) -> None:
+	"""Take a role away the way off-boarding does — through the User document.
+
+	Not a delete from `tabHas Role`: the point of these tests is that the ordinary
+	administrative action revokes authority, so they must perform the ordinary
+	administrative action. `remove_roles` saves, which clears the user's cache.
+	"""
+	frappe.get_doc("User", user).remove_roles(role)
+
+
+def grant_role(user: str, role: str) -> None:
+	"""Give a role back. The inverse of `strip_role`, for restoring it."""
+	make_role(role)
+	frappe.get_doc("User", user).add_roles(role)
+
+
 def make_assignment(
 	user: str,
 	role: str,

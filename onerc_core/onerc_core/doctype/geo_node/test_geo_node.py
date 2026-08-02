@@ -93,6 +93,41 @@ class IntegrationTestGeoNode(IntegrationTestCase):
 		with self.assertRaises(frappe.MandatoryError):
 			self._make_node("Orphaned County", self.county)
 
+	def test_a_parent_at_a_deeper_level_is_rejected(self):
+		"""A Region may not be filed under a County.
+
+		Nothing related the tree to the level ladder before this, so a hierarchy
+		could be nested in an order its own levels contradict. Anything that then
+		read depth off the level ladder walked the chain in an order that was not
+		the tree's — which is how approver routing reached past the nearest holder.
+		"""
+		kiambu = self._make_node("Kiambu", self.county, self.central)
+
+		with self.assertRaises(frappe.ValidationError):
+			self._make_node("Upside Down", self.region, kiambu)
+
+	def test_a_parent_at_the_same_level_is_rejected(self):
+		"""Strictly shallower — a County under a County is not a hierarchy."""
+		with self.assertRaises(frappe.ValidationError):
+			self._make_node("Nested Region", self.region, self.central, is_group=True)
+
+	def test_a_parent_at_a_shallower_level_is_accepted(self):
+		node = self._make_node("Nakuru", self.county, self.central)
+
+		self.assertTrue(frappe.db.exists("Geo Node", node))
+
+	def test_the_rejection_names_both_levels(self):
+		"""A rule nobody can act on is a rule that gets worked around."""
+		kiambu = self._make_node("Kiambu", self.county, self.central)
+
+		with self.assertRaises(frappe.ValidationError) as raised:
+			self._make_node("Upside Down", self.region, kiambu)
+
+		message = str(raised.exception)
+
+		self.assertIn(self.region, message)
+		self.assertIn(self.county, message)
+
 	def test_top_level_node_needs_no_parent(self):
 		node = self._make_node("Rift Valley", self.region)
 

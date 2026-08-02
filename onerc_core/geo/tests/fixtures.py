@@ -3,16 +3,21 @@
 
 """Hierarchy fixtures for geo tests.
 
-Two shapes get built — a 3-level and a 5-level hierarchy — so the adapter is
-exercised at more than one depth. Nothing in the adapter may assume a fixed
-number of levels, and these fixtures are how that is proved.
+Two well-formed shapes get built — a 3-level and a 5-level hierarchy — so the
+adapter is exercised at more than one depth. Nothing in the adapter may assume a
+fixed number of levels, and these fixtures are how that is proved.
+
+There is a third, deliberately malformed shape: `build_misnested_chain()`, a
+tree whose nesting does not follow the level ladder. It is what proves the
+adapter reads depth from the tree rather than from Geo Level.
 """
 
 import frappe
 
 THREE_LEVEL_PREFIX = "T3"
 FIVE_LEVEL_PREFIX = "T5"
-_ALL_PREFIXES = (THREE_LEVEL_PREFIX, FIVE_LEVEL_PREFIX)
+MISNESTED_PREFIX = "TX"
+_ALL_PREFIXES = (THREE_LEVEL_PREFIX, FIVE_LEVEL_PREFIX, MISNESTED_PREFIX)
 
 
 def make_level(
@@ -79,6 +84,50 @@ def make_chain(levels: list[str], labels: list[str], root_parent: str | None = N
 		nodes.append(parent)
 
 	return nodes
+
+
+def build_misnested_chain(prefix: str) -> dict:
+	"""A four-node chain whose depth and level ladder disagree.
+
+	Geo Node refuses a parent at the same or a deeper level, so this shape cannot
+	be built through the controller — which is the point. Rows written before
+	that rule existed can still look like this, and a society is free to renumber
+	its levels underneath a tree that is already there. The chain is therefore
+	built valid and then two of its nodes are repointed with a direct write::
+
+	    Root   (level order 1)
+	    └── Mid    (level order 3)   ← a deeper level than the node below it
+	        └── Inner  (level order 2)
+	            └── Leaf   (level order 4)
+
+	Ordering the ancestors of Leaf by `geo_level_order` gives Mid, Inner, Root.
+	Ordering by tree position gives Inner, Mid, Root — and Inner is the true
+	nearest. Anything that routes upward must reach Inner first.
+
+	No level here is flagged `is_lowest_level`: only one active level may carry
+	that flag, and a caller building this alongside another hierarchy would
+	otherwise collide with it.
+	"""
+	levels = [
+		make_level(f"{prefix}-{order}", label, order)
+		for order, label in enumerate(("One", "Two", "Three", "Four"), start=1)
+	]
+	root, mid, inner, leaf = make_chain(levels, ["Root", "Mid", "Inner", "Leaf"])
+
+	force_level(mid, levels[2])
+	force_level(inner, levels[1])
+
+	return {"levels": levels, "root": root, "mid": mid, "inner": inner, "leaf": leaf}
+
+
+def force_level(node: str, level: str) -> None:
+	"""Repoint a node at a level without going through validation.
+
+	The only supported way to produce a tree nested out of level order, and it is
+	supported only here — nothing outside these fixtures may write a Geo Node
+	field behind the controller's back.
+	"""
+	frappe.db.set_value("Geo Node", node, "geo_level", level, update_modified=False)
 
 
 def reset() -> None:

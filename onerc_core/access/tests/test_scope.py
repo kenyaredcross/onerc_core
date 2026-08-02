@@ -7,6 +7,7 @@ from frappe.utils import add_days, today
 
 from onerc_core.access.services import scope
 from onerc_core.access.tests import fixtures
+from onerc_core.onerc_core.doctype.geo_assignment.geo_assignment import grants_authority, is_live
 
 EXTRA_TEST_RECORD_DEPENDENCIES = []
 
@@ -263,3 +264,116 @@ class TestUnrestrictedBypass(ScopeTestCase):
 			0,
 			"the bypass must not be an artefact of a fixture assignment",
 		)
+
+
+class TestTheRoleMustStillBeHeld(ScopeTestCase):
+	"""An assignment places authority; it does not confer it.
+
+	A Geo Assignment names a Frappe role and a node. The role is what the user
+	may do and the node is where — so a user who no longer holds the role has
+	nothing left for the row to place, and the row must grant nothing.
+
+	This is what makes off-boarding by role removal complete. Stripping somebody's
+	roles is the obvious way to remove their access, and before this it left every
+	Geo Assignment they held still granting scope and still routing approvals to
+	them. Either half of an off-boarding now revokes on its own: removing the role,
+	or deactivating the assignment.
+	"""
+
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+
+		cls.holder = fixtures.make_user("role_holder", [fixtures.APPROVER_ROLE])
+		fixtures.make_assignment(cls.holder, fixtures.APPROVER_ROLE, cls.tree["county_a"])
+
+	def setUp(self):
+		"""Give the role back after any test that took it away.
+
+		Rollback is once per class, so a test that stripped the role would leave
+		the next one testing a user who never had it.
+		"""
+		super().setUp()
+		self.addCleanup(fixtures.grant_role, self.holder, fixtures.APPROVER_ROLE)
+
+	def _covered(self) -> set[str]:
+		return self.scope_for(self.holder, fixtures.APPROVER_ROLE)
+
+	def test_the_role_holder_has_scope_to_begin_with(self):
+		"""The control. Without it, the assertions below prove nothing."""
+		self.assertIn(self.tree["ward_a1"], self._covered())
+
+	def test_removing_the_role_empties_the_scope(self):
+		fixtures.strip_role(self.holder, fixtures.APPROVER_ROLE)
+
+		self.assertEqual(self._covered(), set())
+
+	def test_the_assignment_is_still_live_and_still_grants_nothing(self):
+		"""Nothing was deactivated — liveness alone is not authority."""
+		fixtures.strip_role(self.holder, fixtures.APPROVER_ROLE)
+
+		assignment = frappe.get_all(
+			"Geo Assignment", filters={"user": self.holder, "role": fixtures.APPROVER_ROLE}, pluck="name"
+		)[0]
+
+		self.assertTrue(is_live(assignment))
+		self.assertFalse(grants_authority(assignment))
+		self.assertEqual(self._covered(), set())
+
+	def test_restoring_the_role_restores_the_scope(self):
+		fixtures.strip_role(self.holder, fixtures.APPROVER_ROLE)
+		self.assertEqual(self._covered(), set())
+
+		fixtures.grant_role(self.holder, fixtures.APPROVER_ROLE)
+
+		self.assertEqual(
+			self._covered(),
+			{self.tree["county_a"], self.tree["ward_a1"], self.tree["ward_a2"]},
+		)
+
+	def test_revocation_is_immediate(self):
+		"""No cache to expire, no job to run — the next question gets the new answer."""
+		before = self._covered()
+		fixtures.strip_role(self.holder, fixtures.APPROVER_ROLE)
+		after = self._covered()
+
+		self.assertTrue(before)
+		self.assertEqual(after, set())
+
+	def test_another_role_s_assignment_is_untouched(self):
+		"""Revocation is per role, like everything else in this service."""
+		fixtures.grant_role(self.holder, fixtures.VIEWER_ROLE)
+		fixtures.make_assignment(self.holder, fixtures.VIEWER_ROLE, self.tree["county_b"])
+		self.addCleanup(fixtures.strip_role, self.holder, fixtures.VIEWER_ROLE)
+
+		fixtures.strip_role(self.holder, fixtures.APPROVER_ROLE)
+
+		self.assertEqual(self.scope_for(self.holder, fixtures.APPROVER_ROLE), set())
+		self.assertIn(self.tree["ward_b1"], self.scope_for(self.holder, fixtures.VIEWER_ROLE))
+
+
+class TestTheBypassDoesNotDependOnAnAssignment(ScopeTestCase):
+	"""The System Manager bypass is unaffected by the role check.
+
+	It has to be tested against a user who holds *no* society role, because the
+	bypass returns before any assignment is read. A manager who also held the
+	approver role would pass either way, and would not tell us which rule answered.
+	"""
+
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+
+		cls.manager = fixtures.make_user("bare_manager", ["System Manager"])
+
+	def test_the_manager_does_not_hold_the_role_being_asked_about(self):
+		self.assertNotIn(fixtures.APPROVER_ROLE, frappe.get_roles(self.manager))
+
+	def test_and_holds_no_assignment_either(self):
+		self.assertEqual(frappe.db.count("Geo Assignment", {"user": self.manager}), 0)
+
+	def test_but_still_sees_the_whole_tree(self):
+		covered = self.scope_for(self.manager, fixtures.APPROVER_ROLE)
+
+		for key in ("region", "county_a", "ward_a1", "county_b", "ward_b1", "county_c", "ward_c1"):
+			self.assertIn(self.tree[key], covered, key)

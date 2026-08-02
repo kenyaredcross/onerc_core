@@ -113,10 +113,10 @@
    "label": "Secondary Color"
   },
   {
+   "description": "Optional. Blank means the society has not uploaded one yet.",
    "fieldname": "logo",
    "fieldtype": "Attach Image",
-   "label": "Logo",
-   "reqd": 1
+   "label": "Logo"
   },
   {
    "fieldname": "column_break_opck",

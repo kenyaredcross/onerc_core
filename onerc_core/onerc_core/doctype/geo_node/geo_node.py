@@ -25,6 +25,7 @@ class GeoNode(NestedSet):
 	def validate(self):
 		self.geo_node_name = (self.geo_node_name or "").strip()
 		self.validate_parent_requirement()
+		self.validate_parent_is_shallower()
 		self.validate_sibling_name_is_unique()
 
 	def validate_parent_requirement(self):
@@ -46,6 +47,55 @@ class GeoNode(NestedSet):
 				),
 				frappe.MandatoryError,
 			)
+
+	def validate_parent_is_shallower(self):
+		"""A parent must sit at a strictly shallower level than its child.
+
+		Nothing used to relate the tree to the level ladder, so a County could be
+		filed under a Ward and nobody would hear about it. Two things then go
+		wrong at once: the hierarchy stops meaning what its levels say, and any
+		code that reads depth off the level ladder — approver routing did — walks
+		the chain in an order that is not the tree's.
+
+		The adapter no longer trusts level order for ancestry, so this is not
+		load-bearing for correctness any more. It is here because the malformed
+		tree is a data-entry mistake worth refusing at the point it is made,
+		rather than a shape the rest of the app has to keep tolerating.
+
+		Order 1 is the top of the hierarchy, so "shallower" is a *lower* order.
+		"""
+		if not (self.geo_level and self.parent_geo_node):
+			return
+
+		own_order = frappe.db.get_value("Geo Level", self.geo_level, "geo_level_order")
+		parent_level = frappe.db.get_value("Geo Node", self.parent_geo_node, "geo_level")
+		parent_order = (
+			frappe.db.get_value("Geo Level", parent_level, "geo_level_order") if parent_level else None
+		)
+
+		# Either level is unreadable — a Link to a level that has gone, or a level
+		# saved without an order. Not this rule's business: whatever wrote that is
+		# already broken, and a comparison against None would throw a TypeError
+		# rather than say anything useful.
+		if own_order is None or parent_order is None:
+			return
+
+		if parent_order < own_order:
+			return
+
+		frappe.throw(
+			_(
+				"{0} is at level {1} (order {2}), which is not above level {3} (order {4}). "
+				"A Geo Node's parent must sit at a shallower level than the node itself."
+			).format(
+				frappe.bold(self.parent_geo_node),
+				frappe.bold(parent_level),
+				frappe.bold(parent_order),
+				frappe.bold(self.geo_level),
+				frappe.bold(own_order),
+			),
+			title=_("Parent Is Not Above This Level"),
+		)
 
 	def validate_sibling_name_is_unique(self):
 		"""Two children of one parent may not share a name, case-insensitively.

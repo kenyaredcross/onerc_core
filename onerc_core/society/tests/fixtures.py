@@ -5,8 +5,8 @@
 
 National Society Settings is a Single with mandatory fields, and on a site where
 nobody has opened the form it is only partly populated. So `configure()` always
-writes the mandatory fields — otherwise every test that touches settings would
-fail on a MandatoryError that has nothing to do with what it is testing.
+writes them — otherwise every test that touches settings would fail on a
+MandatoryError that has nothing to do with what it is testing.
 
 Child tables are set explicitly on every call, never appended to, so one test
 cannot inherit another's terminology or toggles.
@@ -16,7 +16,13 @@ import frappe
 
 SETTINGS_DOCTYPE = "National Society Settings"
 
-MANDATORY = {
+# What `configure()` always writes and `reset()` never clears. The four
+# identity fields are here because they are mandatory; `logo` is here because
+# the dark-logo fallback needs something to fall back to. The logo is *not*
+# mandatory — a society must be able to set its currency and phone rules before
+# anybody has a picture to upload — so nothing may infer requiredness from this
+# dict. `test_national_society_settings` asserts the blank case directly.
+BASELINE = {
 	"organization_name": "Test National Society",
 	"organization_short_name": "TNS",
 	"country": "Kenya",
@@ -32,7 +38,7 @@ def configure(**overrides):
 	beyond the test run.
 	"""
 	doc = frappe.get_doc(SETTINGS_DOCTYPE)
-	doc.update(MANDATORY)
+	doc.update(BASELINE)
 
 	# Cleared unless a test asks for them, so state cannot carry between tests.
 	doc.set("terminology", [])
@@ -57,7 +63,7 @@ def reset() -> None:
 	cleared = {}
 
 	for field in meta.fields:
-		if field.fieldname in MANDATORY:
+		if field.fieldname in BASELINE:
 			continue
 
 		# Tables are checked first: they appear in no_value_fields too, so the

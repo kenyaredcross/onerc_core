@@ -258,3 +258,94 @@ class TestGeoAdapterFiveLevels(IntegrationTestCase):
 
 	def test_resolve_upward_returns_none_from_the_deepest_node(self):
 		self.assertIsNone(adapter.resolve_upward(self.kihara, lambda node: False))
+
+
+class TestAncestorOrderFollowsTheTree(IntegrationTestCase):
+	"""Nearest-first is depth, not level order — proved where the two disagree.
+
+	Every hierarchy above is well-formed, so ordering by tree position and
+	ordering by `geo_level_order` give the same answer and neither can be told
+	apart from the other. This class builds the one shape that separates them::
+
+	    Root   (level order 1)
+	    └── Mid    (level order 3)
+	        └── Inner  (level order 2)
+	            └── Leaf   (level order 4)
+
+	Inner is Leaf's nearest ancestor by any honest reading of the tree, but it
+	carries a shallower level than Mid above it. Ordering by the level ladder
+	puts Mid first, and everything that walks upward — approver routing most of
+	all — then reaches the wrong node first.
+	"""
+
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		fixtures.reset()
+
+		cls.chain = fixtures.build_misnested_chain(fixtures.MISNESTED_PREFIX)
+
+	def test_the_fixture_really_is_nested_out_of_level_order(self):
+		"""Without this, every test below could pass on a well-formed tree.
+
+		Read from the parent links and Geo Level rather than through the adapter:
+		a guard that asked the adapter would depend on the ordering it is meant to
+		be guarding, and would go quiet at exactly the wrong moment.
+		"""
+		orders = [self._level_order(self.chain[key]) for key in ("root", "mid", "inner", "leaf")]
+
+		self.assertEqual(orders, [1, 3, 2, 4])
+		self.assertGreater(
+			self._level_order(self.chain["mid"]),
+			self._level_order(self.chain["inner"]),
+			"Mid must sit at a deeper level than the node below it",
+		)
+
+	@staticmethod
+	def _level_order(node: str) -> int:
+		level = frappe.db.get_value("Geo Node", node, "geo_level")
+
+		return frappe.db.get_value("Geo Level", level, "geo_level_order")
+
+	def test_ancestors_are_nearest_first_by_depth(self):
+		ancestors = adapter.get_ancestors(self.chain["leaf"])
+
+		self.assertEqual(
+			[a.name for a in ancestors],
+			[self.chain["inner"], self.chain["mid"], self.chain["root"]],
+		)
+
+	def test_the_immediate_parent_comes_first(self):
+		ancestors = adapter.get_ancestors(self.chain["leaf"])
+
+		self.assertEqual(ancestors[0].name, self.chain["inner"])
+		self.assertEqual(
+			ancestors[0].name,
+			frappe.db.get_value("Geo Node", self.chain["leaf"], "parent_geo_node"),
+		)
+
+	def test_resolve_upward_visits_the_chain_nearest_first(self):
+		visited = []
+
+		def never(node):
+			visited.append(node)
+
+			return False
+
+		adapter.resolve_upward(self.chain["leaf"], never)
+
+		self.assertEqual(
+			visited,
+			[self.chain["leaf"], self.chain["inner"], self.chain["mid"], self.chain["root"]],
+		)
+
+	def test_resolve_upward_stops_at_the_nearest_match(self):
+		"""Both Inner and Mid match; the nearer one must win."""
+		match = adapter.resolve_upward(
+			self.chain["leaf"], lambda node: node in (self.chain["mid"], self.chain["inner"])
+		)
+
+		self.assertEqual(match, self.chain["inner"])
+
+	def test_get_full_path_reads_from_the_node_outward(self):
+		self.assertEqual(adapter.get_full_path(self.chain["leaf"]), "Leaf — Inner — Mid — Root")

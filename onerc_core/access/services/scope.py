@@ -7,18 +7,26 @@ Frappe Roles answer what a user may do. This service answers where, by reading
 Geo Assignment: a role bound to a node in the geo tree, granting that node and
 everything beneath it.
 
-Three properties hold throughout, and the tests are written to break them:
+The two are read together, never separately. An assignment places a role
+somewhere; it does not confer one. A user who no longer holds the role named on
+the row gets nothing from it, so off-boarding by role removal takes the geo
+authority with it — see `GRANTS_AUTHORITY_SQL` in the Geo Assignment controller.
 
-1. **Fail closed.** No live assignment means an empty set, and an empty set
-   means nothing is visible. Every enforcement layer treats "empty" as deny, so
-   a user who was never granted anything is denied by construction rather than
-   by a rule someone remembered to write.
+Four properties hold throughout, and the tests are written to break them:
+
+1. **Fail closed.** No assignment that grants means an empty set, and an empty
+   set means nothing is visible. Every enforcement layer treats "empty" as deny,
+   so a user who was never granted anything is denied by construction rather
+   than by a rule someone remembered to write.
 2. **The role argument is load-bearing.** "Where may I approve volunteers" and
    "where may I view members" are different questions with different answers.
    Scope is never cached or passed around without the role that produced it.
 3. **One source of truth.** Scope and approver routing both read Geo Assignment
-   through the liveness rule in its controller, so they cannot disagree about
-   who holds what, where.
+   through the same rule in its controller, so they cannot disagree about who
+   holds what, where.
+4. **No stale authority.** Nothing here caches a scope, and the role check reads
+   `tabHas Role` directly, so revoking a role revokes the scope it granted on
+   the next question asked — not after a cache expires or a job runs.
 
 Subtree expansion goes through the geo adapter's nested-set queries — no
 recursion, and no direct Geo Node access even from inside core.
@@ -28,7 +36,7 @@ import frappe
 from frappe.utils import getdate, today
 
 from onerc_core.geo.services import adapter
-from onerc_core.onerc_core.doctype.geo_assignment.geo_assignment import LIVE_SQL
+from onerc_core.onerc_core.doctype.geo_assignment.geo_assignment import GRANTS_AUTHORITY_SQL
 
 # The bypass, stated explicitly rather than left implicit in a permission check.
 #
@@ -59,10 +67,15 @@ def has_unrestricted_scope(user: str | None = None) -> bool:
 def get_user_geo_scope(user: str | None, role: str, on_date: str | None = None) -> set[str]:
 	"""The geo nodes `user` may act on when exercising `role`.
 
-	Each live assignment contributes its node plus every descendant; the results
-	are unioned. ACC-01 falls out of that union: assignments at two unrelated
-	counties yield both subtrees and nothing between them, because a union of
-	two disjoint subtrees cannot reach a sibling of either.
+	Each assignment that grants contributes its node plus every descendant; the
+	results are unioned. ACC-01 falls out of that union: assignments at two
+	unrelated counties yield both subtrees and nothing between them, because a
+	union of two disjoint subtrees cannot reach a sibling of either.
+
+	An assignment grants only while the user still holds the role it names, so a
+	user stripped of `role` gets an empty set from here however many live rows
+	are still on file. The bypass above is the one exception, and it is not an
+	exception to that rule: it never consults an assignment at all.
 
 	Returns an empty set when nothing is granted — the caller must treat that as
 	"sees nothing", never as "unfiltered".
@@ -80,11 +93,13 @@ def get_user_geo_scope(user: str | None, role: str, on_date: str | None = None) 
 
 
 def live_assignment_nodes(user: str | None, role: str, on_date: str | None = None) -> list[str]:
-	"""Distinct nodes where `user` holds a live assignment for `role`.
+	"""Distinct nodes where `user` holds an assignment for `role` that grants.
 
-	The one place a live assignment is looked up by user and role. Liveness is
-	`LIVE_SQL` from the Geo Assignment controller — this module does not restate
-	`is_active = 1 AND ...`, so the query path and `is_live()` cannot drift.
+	The one place an assignment is looked up by user and role. What "grants" means
+	is `GRANTS_AUTHORITY_SQL` from the Geo Assignment controller — live, and the
+	role still held. This module does not restate `is_active = 1 AND ...` or
+	re-derive who holds what, so the query path and `grants_authority()` cannot
+	drift.
 	"""
 	user = user or frappe.session.user
 
@@ -97,7 +112,7 @@ def live_assignment_nodes(user: str | None, role: str, on_date: str | None = Non
 		FROM `tabGeo Assignment` assignment
 		WHERE assignment.user = %(user)s
 			AND assignment.role = %(role)s
-			AND {LIVE_SQL}
+			AND {GRANTS_AUTHORITY_SQL}
 		""",
 		{"user": user, "role": role, "on_date": getdate(on_date or today())},
 		pluck=True,
@@ -105,11 +120,15 @@ def live_assignment_nodes(user: str | None, role: str, on_date: str | None = Non
 
 
 def holders_at(node: str, role: str, on_date: str | None = None) -> list[str]:
-	"""Users holding a live assignment for `role` at exactly this node.
+	"""Users whose assignment for `role` grants at exactly this node.
 
 	Exactly this node — not its subtree. Approver routing walks upward one node
 	at a time and asks this question at each step, which is what makes "nearest
 	ancestor" mean nearest rather than "anyone above".
+
+	Same `GRANTS_AUTHORITY_SQL` as the scope query above, which is what keeps
+	property 3 true: a user stripped of the role vanishes from both answers at
+	the same instant, so routing can never name somebody scope would refuse.
 	"""
 	if not (node and role):
 		return []
@@ -120,7 +139,7 @@ def holders_at(node: str, role: str, on_date: str | None = None) -> list[str]:
 		FROM `tabGeo Assignment` assignment
 		WHERE assignment.geo_node = %(node)s
 			AND assignment.role = %(role)s
-			AND {LIVE_SQL}
+			AND {GRANTS_AUTHORITY_SQL}
 		ORDER BY assignment.user ASC
 		""",
 		{"node": node, "role": role, "on_date": getdate(on_date or today())},

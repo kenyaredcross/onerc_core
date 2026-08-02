@@ -44,10 +44,24 @@ class NationalSocietySettings(Document):
 		if self.time_zone not in available_timezones():
 			frappe.throw(
 				_("{0} is not an IANA time zone name. Expected something like {1}.").format(
-					frappe.bold(self.time_zone), frappe.bold("Africa/Nairobi")
+					frappe.bold(self.time_zone), frappe.bold(self.time_zone_example())
 				),
 				title=_("Unknown Time Zone"),
 			)
+
+	@staticmethod
+	def time_zone_example() -> str:
+		"""A worked example for the message above, relevant to this site.
+
+		The site's own zone, collected by Frappe at setup. It used to be a
+		hardcoded "Africa/Nairobi", which reads as an instruction to every
+		society that is not Kenyan — the same reason no country, currency or
+		phone pattern is hardcoded anywhere else in this app.
+
+		`Region/City` when System Settings has nothing to offer: a shape rather
+		than a place, which is what the message is really demonstrating.
+		"""
+		return frappe.db.get_single_value("System Settings", "time_zone") or "Region/City"
 
 	def validate_phone_number_pattern(self):
 		"""A pattern that does not compile would reject every number entered.
