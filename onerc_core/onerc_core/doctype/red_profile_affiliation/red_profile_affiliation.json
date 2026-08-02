@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2026-07-30 09:12:00.000000",
+ "creation": "2026-07-30 09:12:00",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
@@ -29,7 +29,7 @@
   {
    "columns": 2,
    "default": "Active",
-   "description": "A coarse summary of the satellite's own lifecycle. Never read this to decide what someone may do — read the satellite.",
+   "description": "A coarse summary of the satellite's own lifecycle. What someone may do is read from the satellite, not from here.",
    "fieldname": "status",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -85,8 +85,8 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-30 09:12:00.000000",
- "modified_by": "Administrator",
+ "modified": "2026-08-02 22:04:35.047276",
+ "modified_by": "nigelnathan2@gmail.com",
  "module": "Onerc Core",
  "name": "Red Profile Affiliation",
  "owner": "Administrator",

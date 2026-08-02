@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2026-07-30 09:14:00.000000",
+ "creation": "2026-07-30 09:14:00",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -51,7 +51,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Composed from the name fields. For display only — never branch on it.",
+   "description": "Composed from the name fields. For display only, never branch on it.",
    "fieldname": "full_name",
    "fieldtype": "Data",
    "label": "Full Name",
@@ -83,7 +83,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Optional. Not everyone with a profile can log in — beneficiaries, imports and staff-entered records have no user.",
+   "description": "The linked login account. Not everyone can log in: beneficiaries, imports, and historical records may have none.",
    "fieldname": "user",
    "fieldtype": "Link",
    "label": "User",
@@ -96,6 +96,7 @@
    "label": "Location"
   },
   {
+   "description": "Optional. Where this person is based.",
    "fieldname": "home_geo_node",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -119,8 +120,8 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-30 09:14:00.000000",
- "modified_by": "Administrator",
+ "modified": "2026-08-02 22:00:41.228693",
+ "modified_by": "nigelnathan2@gmail.com",
  "module": "Onerc Core",
  "name": "Red Profile",
  "naming_rule": "",

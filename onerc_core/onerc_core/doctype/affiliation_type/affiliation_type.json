@@ -2,7 +2,7 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "field:affiliation_type_key",
- "creation": "2026-07-30 09:10:00.000000",
+ "creation": "2026-07-30 09:10:00",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -23,7 +23,7 @@
    "label": "Type Identity"
   },
   {
-   "description": "What a person <i>is</i> to the society, eg. Volunteer, Member, Vendor, Beneficiary, Donor, Staff. Not a capability — never what a user is allowed to do.",
+   "description": "What a person <i>is</i> to the society, eg. Volunteer, Member, Vendor, Beneficiary, Donor, Staff. Not a capability. Never what a user is allowed to do.",
    "fieldname": "affiliation_type_name",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -79,8 +79,8 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-30 09:10:00.000000",
- "modified_by": "Administrator",
+ "modified": "2026-08-02 21:50:30.715795",
+ "modified_by": "nigelnathan2@gmail.com",
  "module": "Onerc Core",
  "name": "Affiliation Type",
  "naming_rule": "By fieldname",
