@@ -49,10 +49,107 @@ TEST_ROLES = (APPROVER_ROLE, VIEWER_ROLE)
 LEVEL_PREFIX = "TA"
 USER_DOMAIN = "@acc.test"
 
+SETTINGS_DOCTYPE = "National Society Settings"
+
+# The settings field a product app would add to say which role scopes its
+# doctype. Core ships no such field — see `ensure_setting_field`.
+SCOPE_ROLE_SETTING = "acc_test_scope_role"
+
 
 def registration(role: str = APPROVER_ROLE, doctype: str = SCOPED_DOCTYPE, field: str = GEO_FIELD) -> dict:
 	"""What an owning app would put in its `onerc_scopeable_doctypes`."""
 	return {"doctype": doctype, "geo_node_field": field, "role": role}
+
+
+def registration_from_setting(
+	setting: str = SCOPE_ROLE_SETTING, doctype: str = SCOPED_DOCTYPE, field: str = GEO_FIELD
+) -> dict:
+	"""The same registration, with the role named by a settings field instead.
+
+	Structurally identical to `registration()` except for which key names the
+	role — which is exactly what the backward-compatibility tests compare.
+	"""
+	return {"doctype": doctype, "geo_node_field": field, "role_from_setting": setting}
+
+
+def ensure_setting_field() -> str:
+	"""Add the settings field an owning app would add, as a Custom Field.
+
+	Core does **not** ship a "which role scopes your doctype" field: which
+	doctypes are scoped is a product's business, so the product owns the field
+	and core only resolves whatever fieldname was registered. That is what these
+	tests reproduce — a Custom Field on National Society Settings, created the
+	way a product app's patch would create it.
+
+	Inserting a Custom Field commits, so this runs alongside the stand-in
+	doctype, before anything that must roll back.
+	"""
+	if frappe.db.exists("Custom Field", {"dt": SETTINGS_DOCTYPE, "fieldname": SCOPE_ROLE_SETTING}):
+		return SCOPE_ROLE_SETTING
+
+	frappe.get_doc(
+		{
+			"doctype": "Custom Field",
+			"dt": SETTINGS_DOCTYPE,
+			"fieldname": SCOPE_ROLE_SETTING,
+			"label": "ACC Test Scope Role",
+			"fieldtype": "Data",
+			"insert_after": "phone_number_example",
+		}
+	).insert()
+
+	return SCOPE_ROLE_SETTING
+
+
+def set_scope_role_setting(value: str | None) -> None:
+	"""Point the settings field at a role — or clear it — and drop the cache.
+
+	`set_single_value` writes straight to `tabSingles`, which is what makes this
+	usable for the *enforcement*-time tests: it deliberately bypasses
+	`validate()`, so a bad value can be planted to prove enforcement copes with
+	one. The config-time tests save the document properly instead.
+	"""
+	frappe.db.set_single_value(SETTINGS_DOCTYPE, SCOPE_ROLE_SETTING, value)
+	frappe.clear_document_cache(SETTINGS_DOCTYPE, SETTINGS_DOCTYPE)
+
+
+def ensure_settings_saveable(settings) -> None:
+	"""Fill the settings single's own mandatory fields, if a site left them blank.
+
+	Nothing to do with scope roles — `organization_name` and friends are simply
+	required, and a site that has never opened the form has none of them. Without
+	this, every `save()` below fails with a `MandatoryError`, which **subclasses
+	`ValidationError`** and would let a "bad role is refused" test pass without
+	the role check ever running.
+	"""
+	for fieldname in ("organization_name", "organization_short_name"):
+		if not settings.get(fieldname):
+			settings.set(fieldname, f"{TEST_PREFIX} Society")
+
+	if not settings.get("primary_language"):
+		settings.set("primary_language", frappe.db.get_value("Language", {"name": "en"}) or "en")
+
+
+def save_scope_role_setting(value: str | None):
+	"""Set the field through a real document save, so `validate()` runs."""
+	settings = frappe.get_doc(SETTINGS_DOCTYPE)
+	ensure_settings_saveable(settings)
+	settings.set(SCOPE_ROLE_SETTING, value)
+	settings.save()
+	frappe.clear_document_cache(SETTINGS_DOCTYPE, SETTINGS_DOCTYPE)
+
+	return settings
+
+
+def scope_role_log_count() -> int:
+	"""How many unresolved-role errors have been logged.
+
+	The detectable signal, counted. What separates "misconfigured" from
+	"correctly configured but nobody is assigned" in the tests.
+	"""
+	from onerc_core.access.services.registry import UNRESOLVED_ROLE_LOG_TITLE
+
+	return frappe.db.count("Error Log", {"method": UNRESOLVED_ROLE_LOG_TITLE})
 
 
 def make_role(name: str) -> str:
@@ -236,6 +333,15 @@ def reset() -> None:
 def teardown() -> None:
 	"""Remove the stand-in doctype and its roles. Mirrors ensure_scoped_doctype()."""
 	reset()
+
+	set_scope_role_setting(None)
+
+	custom_field = frappe.db.get_value(
+		"Custom Field", {"dt": SETTINGS_DOCTYPE, "fieldname": SCOPE_ROLE_SETTING}, "name"
+	)
+
+	if custom_field:
+		frappe.delete_doc("Custom Field", custom_field, force=True)
 
 	if frappe.db.exists("DocType", SCOPED_DOCTYPE):
 		frappe.delete_doc("DocType", SCOPED_DOCTYPE, force=True)

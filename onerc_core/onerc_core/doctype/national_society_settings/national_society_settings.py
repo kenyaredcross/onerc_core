@@ -24,8 +24,61 @@ class NationalSocietySettings(Document):
 	def validate(self):
 		self.validate_time_zone()
 		self.validate_phone_number_pattern()
+		self.validate_scope_roles()
 		self.normalise_terminology()
 		self.normalise_feature_toggles()
+
+	def validate_scope_roles(self):
+		"""A settings field naming which role scopes a doctype must name a real one.
+
+		The config-time half of the access layer's fail-loud rule. An app may
+		register a scopeable doctype whose role comes from a field here
+		(`role_from_setting`); if that field holds a role that does not exist,
+		every user is denied that doctype, and the symptom — an empty list view —
+		looks exactly like "nobody has been granted anything yet".
+
+		So a **non-empty** value is checked against `tabRole` and refused here,
+		while the administrator is still looking at the form. An **empty** value
+		saves fine: a society that has not chosen the role yet has not made a
+		mistake, and enforcement fails closed and logs until they do.
+
+		Reading core's own registry hook is not a dependency on a product app —
+		it is the aggregated declaration, and core never learns a doctype's name
+		any other way.
+		"""
+		from onerc_core.access.services import registry
+
+		try:
+			settings_backed = registry.settings_backed_registrations()
+		except frappe.ValidationError:
+			# Some app's registration is malformed. That is already loud in every
+			# enforcement path, and blocking this form would lock an
+			# administrator out of the one screen that fixes configuration.
+			frappe.log_error(
+				title="Scope registrations could not be read while validating settings",
+				message=frappe.get_traceback(),
+			)
+
+			return
+
+		for registration in settings_backed:
+			fieldname = registration[registry.ROLE_SETTING_KEY]
+			role = (self.get(fieldname) or "").strip()
+
+			if not role or frappe.db.exists("Role", role):
+				continue
+
+			frappe.throw(
+				_(
+					"{0} is set to {1}, which is not a Frappe role. It decides who may see {2}, so"
+					" a name matching nothing would deny everybody."
+				).format(
+					frappe.bold(_(self.meta.get_label(fieldname) or fieldname)),
+					frappe.bold(role),
+					frappe.bold(registration["doctype"]),
+				),
+				title=_("Unknown Scope Role"),
+			)
 
 	def validate_time_zone(self):
 		"""An unrecognised zone is worse than a blank one — it fails at use.

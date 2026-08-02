@@ -58,7 +58,15 @@ def get_permission_query_conditions(user: str | None = None, doctype: str | None
 		return ""
 
 	field = registry.geo_node_field(doctype)
-	nodes = scope.get_user_geo_scope(user, registration["role"])
+	role = registry.resolve_role(registration)
+
+	if not role:
+		# The registration names a role that cannot be resolved. `resolve_role`
+		# has already logged it; fail closed rather than throw, because throwing
+		# here would break every list view on the site instead of one doctype's.
+		return DENY_ALL
+
+	nodes = scope.get_user_geo_scope(user, role)
 
 	if not nodes:
 		return DENY_ALL
@@ -111,7 +119,16 @@ def is_in_scope(doctype: str, geo_node: str | None, user: str | None = None) -> 
 	if not geo_node:
 		return False
 
-	return geo_node in scope.get_user_geo_scope(user, registration["role"])
+	role = registry.resolve_role(registration)
+
+	if not role:
+		# Logged by `resolve_role`. Denying is the only safe answer: an
+		# unresolvable role means nobody's authority over this doctype can be
+		# established, and granting on "we could not tell" is how a scope layer
+		# becomes decorative.
+		return False
+
+	return geo_node in scope.get_user_geo_scope(user, role)
 
 
 def guard(doctype: str, name: str, user: str | None = None) -> None:
@@ -139,9 +156,26 @@ def guard(doctype: str, name: str, user: str | None = None) -> None:
 	if is_in_scope(doctype, geo_node, user):
 		return
 
+	# The resolved role, so the message names the role the society actually
+	# configured rather than the settings fieldname holding it. An unresolvable
+	# role has already been logged by `is_in_scope`; the refusal still stands
+	# and says as much rather than naming a role that does not exist.
+	role = registry.resolve_role(registration)
+
+	if not role:
+		frappe.throw(
+			_(
+				"You are not permitted to act on {0} {1}. The role that scopes {0} is not"
+				" configured, so nobody's area can be established — ask an administrator to set it"
+				" in National Society Settings."
+			).format(doctype, frappe.bold(name)),
+			frappe.PermissionError,
+			title=_("Scope Role Not Configured"),
+		)
+
 	frappe.throw(
 		_("You are not permitted to act on {0} {1} — it is outside the area you hold {2} in.").format(
-			doctype, frappe.bold(name), frappe.bold(registration["role"])
+			doctype, frappe.bold(name), frappe.bold(role)
 		),
 		frappe.PermissionError,
 		title=_("Outside Your Area"),
