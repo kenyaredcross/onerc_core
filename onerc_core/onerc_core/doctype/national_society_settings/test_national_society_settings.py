@@ -10,7 +10,11 @@ from onerc_core.onerc_core.doctype.national_society_settings.national_society_se
 from onerc_core.society.tests import fixtures
 
 EXTRA_TEST_RECORD_DEPENDENCIES = []
-IGNORE_TEST_RECORD_DEPENDENCIES = []
+
+# vmmsx's vmms_volunteer_employee_company Custom Field puts a direct Link to
+# Company on this Single, and Company's ERPNext test record needs a Fiscal Year
+# that collides with the site's real one. Nothing here reads that field.
+IGNORE_TEST_RECORD_DEPENDENCIES = ["Company"]
 
 SETTINGS_DOCTYPE = fixtures.SETTINGS_DOCTYPE
 

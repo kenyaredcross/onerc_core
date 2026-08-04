@@ -14,6 +14,11 @@ from onerc_core.onerc_core.doctype.geo_assignment.geo_assignment import (
 
 EXTRA_TEST_RECORD_DEPENDENCIES = []
 
+# `user` reaches User, which reaches Email Account, which reaches Company, whose
+# ERPNext test record needs a Fiscal Year that collides with the site's real one.
+# These tests build their own users through fixtures.make_user.
+IGNORE_TEST_RECORD_DEPENDENCIES = ["User"]
+
 
 class TestGeoAssignment(IntegrationTestCase):
 	@classmethod

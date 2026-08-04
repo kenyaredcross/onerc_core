@@ -1,0 +1,38 @@
+[
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "Identification Type",
+  "identification_type_key": "national_id",
+  "identification_type_name": "National ID",
+  "is_active": 1,
+  "name": "national_id"
+ },
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "Identification Type",
+  "identification_type_key": "passport",
+  "identification_type_name": "Passport",
+  "is_active": 1,
+  "name": "passport"
+ },
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "Identification Type",
+  "identification_type_key": "alien_id",
+  "identification_type_name": "Alien ID",
+  "is_active": 1,
+  "name": "alien_id"
+ },
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "Identification Type",
+  "identification_type_key": "driving_licence",
+  "identification_type_name": "Driving Licence",
+  "is_active": 1,
+  "name": "driving_licence"
+ }
+]

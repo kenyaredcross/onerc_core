@@ -12,6 +12,8 @@ from onerc_core.onerc_core.doctype.red_profile_affiliation.red_profile_affiliati
 
 RED_PROFILE_NAMING_SERIES = "RP-.#####"
 
+IDENTIFICATION_DOCTYPE = "Red Profile Identification"
+
 # What makes two affiliation rows the same row, for the purpose of noticing that
 # something wrote to the table without going through the service.
 _ROW_IDENTITY_FIELDS = ("affiliation_type", *SATELLITE_OWNED_FIELDS)
@@ -23,6 +25,13 @@ class RedProfile(Document):
 	Thin on purpose: who someone is, and an index of their affiliations. No
 	domain data — a volunteer's skills and a member's fee live in satellite
 	doctypes in other apps that link back here.
+
+	The personal fields — gender, date of birth, nationality, citizenship, the
+	documents someone holds — are not an exception to that. They are
+	person-facts, true whatever roles the person holds, which is why they belong
+	on the spine rather than being copied into every satellite that wants one.
+	All of them are optional: a profile is created at registration with a name
+	and an email, and whichever affiliation process needs more asks for it then.
 	"""
 
 	def autoname(self):
@@ -44,6 +53,7 @@ class RedProfile(Document):
 		self.normalise_email()
 		self.set_full_name()
 		self.validate_phone_number()
+		self.validate_identifications()
 		self.guard_affiliations_are_service_written()
 
 	def normalise_email(self):
@@ -72,6 +82,33 @@ class RedProfile(Document):
 		self.phone = (self.phone or "").strip()
 
 		config.validate_phone_number(self.phone, self.meta.get_label("phone"))
+
+	def validate_identifications(self):
+		"""Tidy the rows, and keep "primary" meaning one thing.
+
+		Nothing here is required — a profile may carry no documents at all, and
+		completeness is a question the volunteer and member affiliation
+		processes ask when they need an answer. What is worth refusing is a
+		second primary: whoever later asks "which document do we quote for this
+		person" must get one answer, not a choice.
+
+		Two rows of the same type are fine and deliberately allowed. Dual
+		nationality means two passports, and a society that could not record
+		both would be back at the flat fields this table replaced.
+		"""
+		primary = 0
+
+		for row in self.identifications:
+			row.id_number = (row.id_number or "").strip()
+			primary += 1 if row.is_primary else 0
+
+		if primary > 1:
+			label = frappe.get_meta(IDENTIFICATION_DOCTYPE).get_label("is_primary")
+
+			frappe.throw(
+				_("Only one identification may be marked {0}.").format(frappe.bold(_(label))),
+				title=_("More Than One Primary"),
+			)
 
 	def guard_affiliations_are_service_written(self):
 		"""Keep the affiliation index derived, by refusing writes from elsewhere.

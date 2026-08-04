@@ -11,13 +11,24 @@
   "last_name",
   "column_break_name",
   "full_name",
+  "profile_photo",
   "contact_section",
   "email",
   "phone",
   "column_break_contact",
   "user",
+  "personal_section",
+  "gender",
+  "date_of_birth",
+  "marital_status",
+  "column_break_personal",
+  "nationality",
+  "citizenship_status",
+  "preferred_language",
   "location_section",
   "home_geo_node",
+  "identification_section",
+  "identifications",
   "affiliations_section",
   "affiliations"
  ],
@@ -58,6 +69,11 @@
    "read_only": 1
   },
   {
+   "fieldname": "profile_photo",
+   "fieldtype": "Attach Image",
+   "label": "Profile Photo"
+  },
+  {
    "fieldname": "contact_section",
    "fieldtype": "Section Break",
    "label": "Contact"
@@ -91,6 +107,56 @@
    "unique": 1
   },
   {
+   "description": "Person facts, true whatever roles this person holds. All optional: the spine stays thin at registration, and completeness is asked for later by whichever affiliation process needs it.",
+   "fieldname": "personal_section",
+   "fieldtype": "Section Break",
+   "label": "Personal Details"
+  },
+  {
+   "description": "Optional. The society edits the list of options; nothing in this app assumes what is on it.",
+   "fieldname": "gender",
+   "fieldtype": "Link",
+   "label": "Gender",
+   "options": "Gender"
+  },
+  {
+   "description": "Optional. Age policies and HR provisioning read this. Nothing here derives an age.",
+   "fieldname": "date_of_birth",
+   "fieldtype": "Date",
+   "label": "Date of Birth"
+  },
+  {
+   "fieldname": "marital_status",
+   "fieldtype": "Select",
+   "label": "Marital Status",
+   "options": "\nSingle\nMarried\nDivorced\nWidowed\nOther"
+  },
+  {
+   "fieldname": "column_break_personal",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Optional. The nationality this person holds. There is deliberately no second country field: one question, asked once.",
+   "fieldname": "nationality",
+   "fieldtype": "Link",
+   "label": "Nationality",
+   "options": "Country"
+  },
+  {
+   "description": "Optional. Operationally meaningful for a humanitarian society: entitlements and duty of care can turn on it.",
+   "fieldname": "citizenship_status",
+   "fieldtype": "Select",
+   "label": "Citizenship Status",
+   "options": "\nCitizen\nNon-citizen\nRefugee\nMigrant\nOther"
+  },
+  {
+   "description": "Optional. The language this person would rather be contacted in.",
+   "fieldname": "preferred_language",
+   "fieldtype": "Link",
+   "label": "Preferred Language",
+   "options": "Language"
+  },
+  {
    "fieldname": "location_section",
    "fieldtype": "Section Break",
    "label": "Location"
@@ -102,6 +168,18 @@
    "in_list_view": 1,
    "label": "Home Geo Node",
    "options": "Geo Node"
+  },
+  {
+   "description": "A person may hold several documents at once, so this is a table. Flat passport and ID fields could record only one, and left the reader guessing which.",
+   "fieldname": "identification_section",
+   "fieldtype": "Section Break",
+   "label": "Identification"
+  },
+  {
+   "fieldname": "identifications",
+   "fieldtype": "Table",
+   "label": "Identifications",
+   "options": "Red Profile Identification"
   },
   {
    "description": "A derived index, not a source of truth. Written only by set_affiliation(); the satellite named on each row owns the answer.",
@@ -118,9 +196,10 @@
   }
  ],
  "grid_page_length": 50,
+ "image_field": "profile_photo",
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-02 22:00:41.228693",
+ "modified": "2026-08-04 09:05:00",
  "modified_by": "nigelnathan2@gmail.com",
  "module": "Onerc Core",
  "name": "Red Profile",

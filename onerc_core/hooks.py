@@ -174,6 +174,25 @@ scheduler_events = {
 }
 
 fixtures = [
+	# A starting vocabulary of identity documents, not a closed list: a society
+	# edits it, deactivates what it does not recognise and adds what it does.
+	# Filtered by key so a society's own additions are never swept up and
+	# exported back over the seeded set.
+	{
+		"dt": "Identification Type",
+		"filters": [
+			[
+				"identification_type_key",
+				"in",
+				[
+					"national_id",
+					"passport",
+					"alien_id",
+					"driving_licence",
+				],
+			]
+		],
+	},
 	{
 		"dt": "Stakeholder Entity",
 		"filters": [

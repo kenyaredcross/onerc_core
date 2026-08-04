@@ -60,6 +60,20 @@ def make_affiliation_type(
 	return doc.name
 
 
+def make_identification_type(key: str, label: str | None = None, *, is_active: bool = True) -> str:
+	doc = frappe.get_doc(
+		{
+			"doctype": "Identification Type",
+			"identification_type_key": f"{TEST_PREFIX}-{key}",
+			"identification_type_name": label or key.replace("_", " ").title(),
+			"is_active": int(is_active),
+		}
+	)
+	doc.insert()
+
+	return doc.name
+
+
 def make_profile(first_name: str = "Asha", last_name: str = "Wanjiru", **kwargs) -> str:
 	slug = f"{first_name}.{last_name}".lower()
 	doc = frappe.get_doc(
@@ -133,6 +147,12 @@ def reset() -> None:
 		"Affiliation Type", filters={"name": ("like", f"{TEST_PREFIX}-%")}, pluck="name"
 	):
 		frappe.delete_doc("Affiliation Type", affiliation_type, force=True)
+
+	# After the profiles, whose identification rows link to these.
+	for identification_type in frappe.get_all(
+		"Identification Type", filters={"name": ("like", f"{TEST_PREFIX}-%")}, pluck="name"
+	):
+		frappe.delete_doc("Identification Type", identification_type, force=True)
 
 	for satellite in frappe.get_all(
 		SATELLITE_DOCTYPE, filters={"description": ("like", f"{TEST_PREFIX}%")}, pluck="name"
