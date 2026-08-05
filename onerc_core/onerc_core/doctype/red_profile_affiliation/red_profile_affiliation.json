@@ -13,6 +13,7 @@
   "reference_name",
   "dates_section",
   "start_date",
+  "column_break_rscq",
   "end_date"
  ],
  "fields": [
@@ -79,13 +80,17 @@
    "fieldtype": "Date",
    "label": "End Date",
    "read_only": 1
+  },
+  {
+   "fieldname": "column_break_rscq",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-08-02 22:04:35.047276",
+ "modified": "2026-08-03 08:39:46.875959",
  "modified_by": "nigelnathan2@gmail.com",
  "module": "Onerc Core",
  "name": "Red Profile Affiliation",
