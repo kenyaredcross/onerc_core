@@ -59,6 +59,24 @@ def make_levels(prefix: str, labels: list[str]) -> list[str]:
 	]
 
 
+def only_ours(rows: list[dict], prefix: str, key: str = "key") -> list[dict]:
+	"""The rows belonging to this fixture's ladder, in the order they arrived.
+
+	The adapter's list readers — `level_labels`, `get_root_regions` — answer for
+	the *whole site*, correctly: that is what a UI drawing a hierarchy needs. A
+	development bench now routinely carries a real society's configuration
+	alongside these fixtures, so asserting on the raw list would be asserting on
+	whatever somebody happened to seed, and the suite would go red for reasons
+	that have nothing to do with the adapter.
+
+	Filtering keeps each assertion about the shape the fixture actually built,
+	which is what the test names claim. It is deliberately a *filter* and not a
+	set membership check: order, exclusions and duplicates all survive it, so a
+	test can still fail for the reason it exists.
+	"""
+	return [row for row in rows if str(row.get(key) or "").startswith(f"{prefix}-")]
+
+
 def make_node(label: str, level: str, parent: str | None = None, *, is_group: bool = False) -> str:
 	node = frappe.get_doc(
 		{

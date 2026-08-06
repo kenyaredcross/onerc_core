@@ -148,3 +148,219 @@ class IntegrationTestGeoNode(IntegrationTestCase):
 	def test_nsm_parent_field_is_declared_explicitly(self):
 		"""NestedSet.on_trash() derives `geo_node_parent` when this is unset."""
 		self.assertEqual(GeoNode.nsm_parent_field, "parent_geo_node")
+
+
+class TestSkippingALevel(IntegrationTestCase):
+	"""A parent more than one rung up warns; it never refuses.
+
+	Strict adjacency is a policy some societies hold and others do not: a district
+	with no sub-district, a city that is its own county, a national programme
+	registering straight under the country. A hard rule would reject the real tree
+	in favour of an idealised ladder, so the entry surface points it out and the
+	society decides.
+	"""
+
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		fixtures.reset()
+
+		cls.region, cls.county, cls.ward = fixtures.make_levels(
+			fixtures.THREE_LEVEL_PREFIX, ["Region", "County", "Ward"]
+		)
+		cls.central = fixtures.make_node("Central", cls.region, is_group=True)
+
+	def setUp(self):
+		super().setUp()
+		frappe.clear_messages()
+
+	def _make_node(self, label, level, parent=None, **kwargs):
+		name = fixtures.make_node(label, level, parent, **kwargs)
+		self.addCleanup(frappe.delete_doc, "Geo Node", name, force=True)
+
+		return name
+
+	def _titles(self) -> list[str]:
+		return [message.get("title") for message in frappe.get_message_log()]
+
+	def test_a_parent_two_rungs_up_warns(self):
+		self._make_node("Orphan Ward", self.ward, self.central)
+
+		self.assertIn("A Level Was Skipped", self._titles())
+
+	def test_it_saves_all_the_same(self):
+		"""The half that matters: a valid tree is never rejected for tidiness."""
+		node = self._make_node("Orphan Ward", self.ward, self.central)
+
+		self.assertTrue(frappe.db.exists("Geo Node", node))
+
+	def test_the_warning_names_both_levels_and_the_parent(self):
+		"""A warning nobody can act on is noise."""
+		self._make_node("Orphan Ward", self.ward, self.central)
+
+		message = " ".join(entry.get("message", "") for entry in frappe.get_message_log())
+
+		self.assertIn(self.central, message)
+		self.assertIn(self.region, message)
+		self.assertIn(self.ward, message)
+
+	def test_an_adjacent_parent_warns_about_nothing(self):
+		"""Without this, the test above would pass for a rule that always fires."""
+		self._make_node("Kiambu", self.county, self.central)
+
+		self.assertNotIn("A Level Was Skipped", self._titles())
+
+	def test_a_root_node_warns_about_nothing(self):
+		self._make_node("Rift Valley", self.region)
+
+		self.assertNotIn("A Level Was Skipped", self._titles())
+
+	def test_a_parent_at_a_deeper_level_still_refuses(self):
+		"""Skipping warns; contradicting still throws. They are different mistakes."""
+		kiambu = self._make_node("Kiambu", self.county, self.central)
+
+		with self.assertRaises(frappe.ValidationError):
+			self._make_node("Upside Down", self.region, kiambu)
+
+
+class TestTheGuardSaysWhenItStandsDown(IntegrationTestCase):
+	"""An unreadable level order disables the parent check. That must be visible.
+
+	Returning in silence made the guard indistinguishable from a guard that
+	passed, so a broken level could switch it off for every node saved underneath
+	and nobody would hear about it for a year.
+
+	**The reachable cause is a level that has gone**, not one saved without an
+	order: `geo_level_order` is a mandatory Int, so its column is NOT NULL and a
+	row cannot carry a blank. What can happen is a node left pointing at a Geo
+	Level somebody removed, which is what this fixture reproduces — by deleting
+	the row underneath the tree, which is the only way to produce the state and
+	the same trick `fixtures.force_level` uses for the misnested chain.
+
+	Two ladders, one broken and one intact, so the negative case is asserted
+	against the same code path rather than against its absence.
+	"""
+
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		fixtures.reset()
+
+		# The ladder whose top rung is about to disappear from under its nodes.
+		cls.gone_region, cls.gone_county = fixtures.make_levels(
+			fixtures.THREE_LEVEL_PREFIX, ["Region", "County"]
+		)
+		cls.orphaned_parent = fixtures.make_node("Central", cls.gone_region, is_group=True)
+
+		# Delete the parent's level out from under it. Straight SQL: the ORM
+		# refuses to remove a level a node still links to, which is the whole
+		# point — this is the malformed state that exists on disk from before
+		# such a rule, not one the app would let anybody create today.
+		frappe.db.sql("DELETE FROM `tabGeo Level` WHERE name = %s", cls.gone_region)
+		frappe.clear_document_cache("Geo Level", cls.gone_region)
+
+		# An intact ladder alongside it, for the negative case.
+		cls.region, cls.county = fixtures.make_levels(fixtures.FIVE_LEVEL_PREFIX, ["Region", "County"])
+		cls.central = fixtures.make_node("Coast", cls.region, is_group=True)
+
+	def _errors_since(self, marker) -> list[str]:
+		"""Error Log rows this guard wrote since `marker`.
+
+		Matched on `method`, which is where `frappe.log_error` puts the title;
+		`error` holds the message body.
+		"""
+		return frappe.get_all(
+			"Error Log",
+			filters={"creation": (">", marker), "method": ("like", "%parent-level check skipped%")},
+			pluck="name",
+		)
+
+	def test_a_missing_parent_level_is_logged(self):
+		marker = frappe.utils.now()
+
+		node = fixtures.make_node("Kiambu", self.gone_county, self.orphaned_parent)
+		self.addCleanup(frappe.delete_doc, "Geo Node", node, force=True)
+
+		self.assertTrue(self._errors_since(marker))
+
+	def test_the_node_still_saves(self):
+		"""The tree is already written; refusing would punish the wrong person."""
+		node = fixtures.make_node("Nakuru", self.gone_county, self.orphaned_parent)
+		self.addCleanup(frappe.delete_doc, "Geo Node", node, force=True)
+
+		self.assertTrue(frappe.db.exists("Geo Node", node))
+
+	def test_the_log_names_the_node_and_the_unreadable_level(self):
+		"""A log entry nobody can act on is noise."""
+		marker = frappe.utils.now()
+
+		node = fixtures.make_node("Muranga", self.gone_county, self.orphaned_parent)
+		self.addCleanup(frappe.delete_doc, "Geo Node", node, force=True)
+
+		logged = frappe.db.get_value("Error Log", self._errors_since(marker)[0], "error")
+
+		self.assertIn(self.orphaned_parent, logged)
+		self.assertIn(self.gone_county, logged)
+
+	def test_a_readable_ladder_logs_nothing(self):
+		"""Without this, the tests above would pass for a guard that always complains."""
+		marker = frappe.utils.now()
+
+		node = fixtures.make_node("Kilifi", self.county, self.central)
+		self.addCleanup(frappe.delete_doc, "Geo Node", node, force=True)
+
+		self.assertEqual(self._errors_since(marker), [])
+
+
+class TestAncestryStillIgnoresLevelOrder(IntegrationTestCase):
+	"""The constraint every change above had to respect, asserted rather than trusted.
+
+	The entry surface gained an auto-suggested order, a duplicate warning, a
+	movable lowest marker and a derived top. None of them may have made ancestry,
+	nearness or containment read `geo_level_order` — the tree is the truth, and
+	the misnested fixture is the shape that tells the two apart.
+	"""
+
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		fixtures.reset()
+
+		cls.chain = fixtures.build_misnested_chain(fixtures.MISNESTED_PREFIX)
+
+	def test_the_nearest_ancestor_is_the_tree_s_and_not_the_ladder_s(self):
+		from onerc_core.geo.services import adapter
+
+		ancestors = adapter.get_ancestors(self.chain["leaf"])
+
+		# Tree order: Inner, Mid, Root. Level order would say Mid, Inner, Root.
+		self.assertEqual([row["name"] for row in ancestors[:2]], [self.chain["inner"], self.chain["mid"]])
+
+	def test_the_ladder_really_does_disagree_with_the_tree_here(self):
+		"""Without this, the test above could pass on a well-formed tree."""
+		from onerc_core.geo.services import adapter
+
+		ancestors = adapter.get_ancestors(self.chain["leaf"])
+		orders = [row["geo_level_order"] for row in ancestors]
+
+		self.assertNotEqual(orders, sorted(orders, reverse=True))
+
+	def test_resolve_upward_reaches_the_true_nearest_first(self):
+		from onerc_core.geo.services import adapter
+
+		seen = []
+
+		def remember(candidate):
+			seen.append(candidate)
+
+			return False
+
+		adapter.resolve_upward(self.chain["leaf"], remember)
+
+		self.assertEqual(seen[:2], [self.chain["leaf"], self.chain["inner"]])
+
+	def test_containment_is_bounds_and_not_order(self):
+		from onerc_core.geo.services import adapter
+
+		self.assertTrue(adapter.matches_scope(self.chain["leaf"], self.chain["root"]))
+		self.assertTrue(adapter.matches_scope(self.chain["leaf"], self.chain["inner"]))

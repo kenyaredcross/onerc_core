@@ -63,6 +63,14 @@ class GeoNode(NestedSet):
 		rather than a shape the rest of the app has to keep tolerating.
 
 		Order 1 is the top of the hierarchy, so "shallower" is a *lower* order.
+
+		**Same-or-deeper refuses; skipping a rung only warns.** They are different
+		mistakes. A parent at the same or a deeper level is a contradiction, and
+		there is no reading under which it is what somebody meant. A parent two
+		rungs up is merely unusual: a society that files a few nodes directly
+		under the region because the county tier does not apply there has done
+		nothing wrong, and refusing it would reject a valid tree. See
+		`warn_on_skipped_level`.
 		"""
 		if not (self.geo_level and self.parent_geo_node):
 			return
@@ -73,14 +81,26 @@ class GeoNode(NestedSet):
 			frappe.db.get_value("Geo Level", parent_level, "geo_level_order") if parent_level else None
 		)
 
-		# Either level is unreadable — a Link to a level that has gone, or a level
-		# saved without an order. Not this rule's business: whatever wrote that is
-		# already broken, and a comparison against None would throw a TypeError
-		# rather than say anything useful.
+		# Either level is unreadable, which in practice means a Link to a level
+		# that has gone: `geo_level_order` is a mandatory Int, so its column is
+		# NOT NULL and no surviving row can carry a blank one. Not this rule's
+		# business to fix either way — whatever removed that level is already
+		# broken, and a comparison against None would throw a TypeError rather
+		# than say anything useful.
+		#
+		# It *is* this rule's business to say that it stood down. Returning in
+		# silence disables the guard invisibly: every node saved under the
+		# orphaned parent would pass a check that never ran, and the first anybody
+		# would hear of it is a hierarchy nested in an order its own ladder
+		# contradicts.
 		if own_order is None or parent_order is None:
+			self.log_unreadable_order(parent_level, own_order, parent_order)
+
 			return
 
 		if parent_order < own_order:
+			self.warn_on_skipped_level(parent_level, own_order, parent_order)
+
 			return
 
 		frappe.throw(
@@ -95,6 +115,65 @@ class GeoNode(NestedSet):
 				frappe.bold(own_order),
 			),
 			title=_("Parent Is Not Above This Level"),
+		)
+
+	def warn_on_skipped_level(self, parent_level: str, own_order: int, parent_order: int) -> None:
+		"""Say so when a parent is more than one rung up. Never block.
+
+		**Why this is not a rule.** Strict adjacency — a Ward may only sit under
+		a County, never straight under a Region — is a policy some societies hold
+		and others do not. A district that has no sub-district, a city that is its
+		own county, a national programme registering directly under the country:
+		all of them skip a rung legitimately, and a hard rule would reject the
+		real tree in favour of an idealised ladder. So the entry surface points it
+		out and the society decides.
+
+		A configurable strict mode is the obvious next step if a society asks for
+		it. It is deliberately not built here: an unconfigurable rule is worse
+		than no rule, and a configurable one nobody has asked for is a setting to
+		maintain forever.
+		"""
+		if parent_order >= own_order - 1:
+			return
+
+		frappe.msgprint(
+			_(
+				"{0} is at level {1} (order {2}) and this node is at {3} (order {4}), so a rung has"
+				" been skipped. That is allowed, and it is worth checking: it usually means the"
+				" level in between was meant to be filled in."
+			).format(
+				frappe.bold(self.parent_geo_node),
+				frappe.bold(parent_level),
+				frappe.bold(parent_order),
+				frappe.bold(self.geo_level),
+				frappe.bold(own_order),
+			),
+			title=_("A Level Was Skipped"),
+			indicator="orange",
+		)
+
+	def log_unreadable_order(self, parent_level: str | None, own_order, parent_order) -> None:
+		"""Record that the shallower-parent guard could not run, and why.
+
+		Logged rather than thrown. The tree is the truth and it is already
+		written; refusing the save would punish whoever happens to touch a node
+		next for a level somebody else left malformed. But a guard that stands
+		down without saying so is indistinguishable from a guard that passed,
+		which is how a broken ladder survives unnoticed for a year.
+		"""
+		missing = "this node's level" if own_order is None else "the parent's level"
+
+		frappe.log_error(
+			title="Geo Node parent-level check skipped",
+			message=(
+				f"Could not compare levels for Geo Node {self.name or '(new)'}: {missing} has no"
+				f" readable geo_level_order.\n\n"
+				f"  node level   : {self.geo_level} (order {own_order})\n"
+				f"  parent       : {self.parent_geo_node}\n"
+				f"  parent level : {parent_level} (order {parent_order})\n\n"
+				"The parent-is-shallower guard did not run for this save. Either the level was"
+				" deleted while nodes still pointed at it, or it was written without an order."
+			),
 		)
 
 	def validate_sibling_name_is_unique(self):

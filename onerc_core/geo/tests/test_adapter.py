@@ -45,7 +45,15 @@ class TestGeoAdapterThreeLevels(IntegrationTestCase):
 		cls.likoni = fixtures.make_node("Likoni", cls.ward, cls.mombasa)
 
 	def test_get_root_regions_returns_parentless_nodes(self):
-		roots = adapter.get_root_regions()
+		"""Parentless nodes come back, and nothing below them does.
+
+		Narrowed to this fixture's own levels: the reader answers for the whole
+		site, and a bench carrying a real society's tree would otherwise put its
+		roots in the middle of the assertion. Filtering by level rather than by
+		name keeps the claim intact — a non-root fixture node appearing here
+		would still fail it.
+		"""
+		roots = fixtures.only_ours(adapter.get_root_regions(), fixtures.THREE_LEVEL_PREFIX, key="geo_level")
 
 		self.assertEqual([root.name for root in roots], [self.central, self.coast])
 		self.assertEqual([root.geo_level_order for root in roots], [1, 1])
@@ -100,7 +108,7 @@ class TestGeoAdapterThreeLevels(IntegrationTestCase):
 		self.assertTrue(level.is_lowest)
 
 	def test_level_labels_are_ordered_top_down(self):
-		labels = adapter.level_labels()
+		labels = fixtures.only_ours(adapter.level_labels(), fixtures.THREE_LEVEL_PREFIX)
 
 		self.assertEqual([label.key for label in labels], [self.region, self.county, self.ward])
 		self.assertEqual([label.order for label in labels], [1, 2, 3])
@@ -210,13 +218,13 @@ class TestGeoAdapterFiveLevels(IntegrationTestCase):
 		)
 
 	def test_level_labels_are_ordered_top_down(self):
-		labels = adapter.level_labels()
+		labels = fixtures.only_ours(adapter.level_labels(), fixtures.FIVE_LEVEL_PREFIX)
 
 		self.assertEqual([label.order for label in labels], [1, 2, 3, 4, 5])
 		self.assertEqual([label.name for label in labels], self.LABELS)
 
 	def test_only_the_deepest_level_is_lowest(self):
-		labels = adapter.level_labels()
+		labels = fixtures.only_ours(adapter.level_labels(), fixtures.FIVE_LEVEL_PREFIX)
 
 		self.assertEqual([bool(label.is_lowest) for label in labels], [False] * 4 + [True])
 

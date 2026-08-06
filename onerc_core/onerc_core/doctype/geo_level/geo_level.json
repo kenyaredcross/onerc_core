@@ -16,7 +16,9 @@
   "requires_parent",
   "is_active",
   "column_break_udej",
-  "description"
+  "description",
+  "hierarchy_section",
+  "hierarchy_html"
  ],
  "fields": [
   {
@@ -35,12 +37,14 @@
   },
   {
    "default": "0",
+   "description": "The deepest rung a society still registers records at. Marking a level here moves the marker: whichever active level held it is unset in the same save, so adding a deeper tier is one edit rather than two. At most one active level carries it. Inactive levels are exempt and keep whatever they had.",
    "fieldname": "is_lowest_level",
    "fieldtype": "Check",
    "label": "Is Lowest Level"
   },
   {
    "default": "0",
+   "description": "A Geo Node at this level must be filed under a parent node. The parent has to sit at a shallower level, which is refused if it does not. Skipping a rung, for example a ward straight under a region, is allowed and only warns: some societies genuinely have no tier in between.",
    "fieldname": "requires_parent",
    "fieldtype": "Check",
    "label": "Requires Parent"
@@ -51,6 +55,7 @@
   },
   {
    "default": "1",
+   "description": "An inactive level keeps its records but drops out of the ladder: it is left out of the hierarchy overview, its number is free for another level to take, and it neither claims nor loses the lowest marker.",
    "fieldname": "is_active",
    "fieldtype": "Check",
    "label": "Is Active"
@@ -77,12 +82,24 @@
    "unique": 1
   },
   {
-   "description": "Start from 1 and proceed to 2, 3 etc. 1 is top of the hierarchy",
+   "description": "Where this level sits in the ladder. 1 is the top, and each rung below it counts up. A new level is pre filled with the next free number, so you rarely type one. This is presentation and a data entry guide: the tree decides structure, and nothing about ancestry, routing or scope reads this number. Reusing a number is allowed and only warns, because two societies on one site each number their own ladder from 1.",
    "fieldname": "geo_level_order",
    "fieldtype": "Int",
    "in_list_view": 1,
    "label": "Geo Level Order",
    "reqd": 1
+  },
+  {
+   "collapsible": 1,
+   "description": "The ladder as it stands, read at the moment this form opened. The top rung is derived from the lowest active order and is deliberately not a field on this doctype: a stored flag would be a third answer to where the hierarchy begins, alongside this order and the parentage of the nodes themselves.",
+   "fieldname": "hierarchy_section",
+   "fieldtype": "Section Break",
+   "label": "Hierarchy"
+  },
+  {
+   "fieldname": "hierarchy_html",
+   "fieldtype": "HTML",
+   "label": "Hierarchy Overview"
   }
  ],
  "grid_page_length": 50,

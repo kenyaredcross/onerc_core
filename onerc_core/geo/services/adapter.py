@@ -173,6 +173,106 @@ def level_labels() -> list[dict]:
 	)
 
 
+# --- the ladder, as a thing to look at ------------------------------------
+#
+# Everything from here to the end of this block answers questions about the
+# *ladder* — the configured list of levels — and nothing else. None of it is
+# used, or may be used, to decide ancestry, nearness, routing or scope. Those
+# read the tree, and only the tree: see `get_ancestors`, `resolve_upward` and
+# `matches_scope` above, all of which work from `lft`/`rgt` and never join to a
+# level's order.
+#
+# The distinction is worth stating because "which level is the top" sounds like
+# a structural question and is not. Structurally, the top of the hierarchy is a
+# node with no parent — that is what `get_root_regions()` returns, and it is
+# deliberately not `geo_level_order = 1`. What follows is the *label* a society
+# put at the shallowest rung, which is what a form or a list wants to show.
+
+
+def top_levels() -> list[dict]:
+	"""The active level(s) at the shallowest rung. Derived, never stored.
+
+	**Plural, and that is not hedging.** Nothing stops two active levels sharing
+	an order — deliberately, because two societies on one site each number their
+	own ladder from 1 — so "the level at the top" can legitimately have more than
+	one answer. Returning a list says so instead of picking one arbitrarily and
+	looking authoritative about it.
+
+	Empty when no active level exists at all, which is an unconfigured site
+	rather than an error.
+
+	**This is not `get_root_regions()`.** That answers "where does the tree
+	begin", structurally, from parentage. This answers "what does this society
+	call its shallowest rung", from configuration. On a well-formed site they
+	describe the same tier; if they ever disagree, the tree is the truth and this
+	is the label that needs correcting.
+	"""
+	ladder = level_labels()
+
+	if not ladder:
+		return []
+
+	shallowest = min(row["order"] for row in ladder)
+
+	return [row for row in ladder if row["order"] == shallowest]
+
+
+def is_top_level(level: str) -> bool:
+	"""Is this Geo Level at the shallowest active rung?
+
+	The predicate a form or a list view uses to mark the top. False for an
+	inactive level, and for a level that does not exist: neither is at the top of
+	anything a society is currently running.
+	"""
+	return any(row["key"] == level for row in top_levels())
+
+
+def hierarchy_overview() -> list[dict]:
+	"""The active ladder, top-down, with everything a reader needs to judge it.
+
+	One row per active level::
+
+	    key, name, order, requires_parent, is_top, is_lowest, shares_order_with
+
+	`is_top` and `shares_order_with` are **derived here and stored nowhere**.
+	Adding a third notion of "the top" as a column on Geo Level is exactly the
+	drift this app has been avoiding: there would then be a flag, an order and a
+	parentage rule, and the day two of them disagreed nobody could say which was
+	right.
+
+	`shares_order_with` is what makes a duplicated order visible rather than
+	merely present. It is a list of the other active levels on the same rung, and
+	on a single-society site it is empty for every row. On a site running two
+	societies it is the expected shape, not a fault — which is why this reports
+	it and refuses to have an opinion about it.
+	"""
+	ladder = level_labels()
+	tops = {row["key"] for row in top_levels()}
+	requires_parent = dict(
+		frappe.get_all(
+			"Geo Level", filters={"is_active": 1}, fields=["name", "requires_parent"], as_list=True
+		)
+	)
+
+	by_order: dict[int, list[str]] = {}
+
+	for row in ladder:
+		by_order.setdefault(row["order"], []).append(row["key"])
+
+	return [
+		{
+			"key": row["key"],
+			"name": row["name"],
+			"order": row["order"],
+			"requires_parent": bool(requires_parent.get(row["key"])),
+			"is_top": row["key"] in tops,
+			"is_lowest": bool(row["is_lowest"]),
+			"shares_order_with": [other for other in by_order[row["order"]] if other != row["key"]],
+		}
+		for row in ladder
+	]
+
+
 def is_leaf(node: str) -> bool:
 	"""True when a node has no children.
 
