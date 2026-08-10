@@ -63,3 +63,8 @@ onerc_core/public/icons/social/*.svg
 
 # Local working notes, not part of the repo
 CLAUDE.md
+
+# Generated guides are build artefacts: the generator in docs/ is the source,
+# the .docx it produces is a binary nobody can diff and is stale the moment a
+# field changes. Regenerate rather than commit.
+docs/*.docx
