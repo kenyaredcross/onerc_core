@@ -8,7 +8,7 @@ class RedProfileIdentification(Document):
 	"""One identity document a person holds.
 
 	A table rather than flat fields because a person may hold several at once:
-	a national ID and a passport, or two passports on dual nationality. The
+	a national ID and a passport, or two passports under dual citizenship. The
 	flat `passport_number` / `id_number` / `id_document_type` shape could only
 	ever record one, and left the reader guessing which.
 

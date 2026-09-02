@@ -4,6 +4,7 @@
 import frappe
 from frappe.tests import IntegrationTestCase
 
+from onerc_core.geo.services import adapter
 from onerc_core.geo.tests import fixtures
 from onerc_core.onerc_core.doctype.geo_node.geo_node import GeoNode, get_full_path
 
@@ -364,3 +365,85 @@ class TestAncestryStillIgnoresLevelOrder(IntegrationTestCase):
 
 		self.assertTrue(adapter.matches_scope(self.chain["leaf"], self.chain["root"]))
 		self.assertTrue(adapter.matches_scope(self.chain["leaf"], self.chain["inner"]))
+
+
+class IntegrationTestGeoNodeCoordinates(IntegrationTestCase):
+	"""Where a node is, and the two ways a coordinate pair can be nothing.
+
+	A point is optional and most nodes will never carry one — a tree is filled in
+	from the top down over months. What the rules protect is the case where a
+	point exists but is not a point: half a pair, or a pair that is not on the
+	earth. Both are worth refusing at save rather than discovering on a map,
+	because unlike a missing point — which every reader already handles — a wrong
+	one looks like an answer.
+	"""
+
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		fixtures.reset()
+
+		cls.region, cls.county = fixtures.make_levels(fixtures.THREE_LEVEL_PREFIX, ["Region", "County"])
+		cls.central = fixtures.make_node("Central", cls.region, is_group=True)
+
+	def _make_node(self, label, **kwargs):
+		name = fixtures.make_node(label, self.county, self.central, **kwargs)
+		self.addCleanup(frappe.delete_doc, "Geo Node", name, force=True)
+
+		return name
+
+	def test_a_node_without_a_point_is_ordinary(self):
+		"""The common case, and it must stay free of ceremony."""
+		node = self._make_node("Unplaced")
+
+		self.assertIsNone(adapter.get_point(node))
+
+	def test_a_pair_is_read_back_through_the_adapter(self):
+		node = self._make_node("Nairobi")
+		doc = frappe.get_doc("Geo Node", node)
+		doc.latitude, doc.longitude = -1.2921, 36.8219
+		doc.save()
+
+		self.assertEqual(adapter.get_point(node), {"latitude": -1.2921, "longitude": 36.8219})
+
+	def test_half_a_pair_is_refused(self):
+		"""An empty Float stores as 0.0, so half a pair would be drawn confidently
+		in the Gulf of Guinea."""
+		doc = frappe.get_doc("Geo Node", self._make_node("Halved"))
+		doc.latitude = -1.2921
+
+		with self.assertRaises(frappe.ValidationError):
+			doc.save()
+
+	def test_a_latitude_off_the_earth_is_refused(self):
+		doc = frappe.get_doc("Geo Node", self._make_node("Orbital"))
+		doc.latitude, doc.longitude = 200.0, 36.8219
+
+		with self.assertRaises(frappe.ValidationError):
+			doc.save()
+
+	def test_a_longitude_off_the_earth_is_refused(self):
+		doc = frappe.get_doc("Geo Node", self._make_node("Far Side"))
+		doc.latitude, doc.longitude = -1.2921, 400.0
+
+		with self.assertRaises(frappe.ValidationError):
+			doc.save()
+
+	def test_many_points_come_back_in_one_read(self):
+		"""The shape a map wants. Nodes without a point are absent rather than
+		present with None, so a caller iterating the answer gets only what it can
+		draw."""
+		placed = self._make_node("Placed")
+		unplaced = self._make_node("Unplaced Too")
+
+		doc = frappe.get_doc("Geo Node", placed)
+		doc.latitude, doc.longitude = -4.0435, 39.6682
+		doc.save()
+
+		points = adapter.get_points([placed, unplaced])
+
+		self.assertIn(placed, points)
+		self.assertNotIn(unplaced, points)
+
+	def test_asking_about_nothing_reads_nothing(self):
+		self.assertEqual(adapter.get_points([]), {})

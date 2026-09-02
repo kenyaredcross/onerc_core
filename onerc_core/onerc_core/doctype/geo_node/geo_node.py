@@ -8,6 +8,11 @@ from frappe.utils.nestedset import NestedSet
 
 GEO_NODE_NAMING_SERIES = "GEO-.#####"
 
+# Decimal degrees. Not a society's business and not configuration: these are the
+# bounds of the coordinate system, the same in every country.
+LATITUDE_RANGE = (-90.0, 90.0)
+LONGITUDE_RANGE = (-180.0, 180.0)
+
 
 class GeoNode(NestedSet):
 	# Declared explicitly rather than relying on NestedSet deriving it. The
@@ -27,6 +32,57 @@ class GeoNode(NestedSet):
 		self.validate_parent_requirement()
 		self.validate_parent_is_shallower()
 		self.validate_sibling_name_is_unique()
+		self.validate_coordinates()
+
+	def has_point(self) -> bool:
+		"""Is there a coordinate pair on this node?
+
+		A Float left empty is `0.0`, so this asks whether either value is
+		non-zero rather than whether either is set. The cost is that the one point
+		on the earth at exactly 0, 0 cannot be recorded; it is in the Atlantic, and
+		a society whose branch is there has a larger problem.
+		"""
+		return bool(self.latitude) or bool(self.longitude)
+
+	def validate_coordinates(self):
+		"""A node's point is either on the earth or it is nothing.
+
+		Both rules are about the pair being usable rather than about any society's
+		geography. **Half a pair is the more insidious of the two**: an empty Float
+		stores as `0.0`, so a node with a latitude typed in and a longitude left
+		blank would be drawn confidently in the Gulf of Guinea — and unlike a
+		missing point, which every reader already handles, a wrong one looks like
+		an answer.
+		"""
+		if not self.has_point():
+			return
+
+		if not (self.latitude and self.longitude):
+			frappe.throw(
+				_(
+					"A Geo Node needs both a latitude and a longitude, or neither. One on its own"
+					" cannot be put on a map, and it would be drawn somewhere it is not. Leave both"
+					" empty to keep this node without a point."
+				),
+				frappe.ValidationError,
+				title=_("Half A Coordinate"),
+			)
+
+		for value, (low, high), label in (
+			(self.latitude, LATITUDE_RANGE, _("Latitude")),
+			(self.longitude, LONGITUDE_RANGE, _("Longitude")),
+		):
+			if low <= float(value) <= high:
+				continue
+
+			frappe.throw(
+				_(
+					"{0} {1} is not on the earth — it must be between {2} and {3}. The commonest"
+					" cause is the two typed the wrong way round."
+				).format(label, frappe.bold(value), low, high),
+				frappe.ValidationError,
+				title=_("Not A Point On The Earth"),
+			)
 
 	def validate_parent_requirement(self):
 		"""Enforce Geo Level's `requires_parent` server-side.

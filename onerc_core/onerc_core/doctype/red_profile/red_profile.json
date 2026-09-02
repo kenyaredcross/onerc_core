@@ -22,11 +22,15 @@
   "date_of_birth",
   "marital_status",
   "column_break_personal",
-  "nationality",
+  "country_of_citizenship",
   "citizenship_status",
   "preferred_language",
   "location_section",
+  "residency_type",
   "home_geo_node",
+  "column_break_location",
+  "country_of_residence",
+  "residence_address",
   "identification_section",
   "identifications",
   "affiliations_section",
@@ -136,10 +140,10 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Optional. The nationality this person holds. There is deliberately no second country field: one question, asked once.",
-   "fieldname": "nationality",
+   "description": "Optional. The country this person is a citizen of. This person fact is asked once and read by every affiliation from the Red Profile.",
+   "fieldname": "country_of_citizenship",
    "fieldtype": "Link",
-   "label": "Nationality",
+   "label": "Country of Citizenship",
    "options": "Country"
   },
   {
@@ -159,15 +163,42 @@
   {
    "fieldname": "location_section",
    "fieldtype": "Section Break",
-   "label": "Location"
+   "label": "Residence"
   },
   {
-   "description": "Optional. Where this person is based.",
+   "description": "Optional. Local means the person lives inside this society's geographic tree; Abroad records a country and address instead.",
+   "fieldname": "residency_type",
+   "fieldtype": "Select",
+   "label": "Residency",
+   "options": "\nLocal\nAbroad"
+  },
+  {
+   "depends_on": "eval:doc.residency_type == \"Local\"",
+   "description": "Optional. Where this person lives inside the society's geographic tree. This is not the branch where an affiliation serves.",
    "fieldname": "home_geo_node",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Home Geo Node",
    "options": "Geo Node"
+  },
+  {
+   "fieldname": "column_break_location",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.residency_type == \"Abroad\"",
+   "description": "Optional. The country where this person currently lives when it is outside the society's geographic tree.",
+   "fieldname": "country_of_residence",
+   "fieldtype": "Link",
+   "label": "Country of Residence",
+   "options": "Country"
+  },
+  {
+   "depends_on": "eval:doc.residency_type == \"Abroad\"",
+   "description": "Optional. The person's current address abroad, where no Geo Node is available.",
+   "fieldname": "residence_address",
+   "fieldtype": "Small Text",
+   "label": "Address Abroad"
   },
   {
    "description": "A person may hold several documents at once, so this is a table. Flat passport and ID fields could record only one, and left the reader guessing which.",

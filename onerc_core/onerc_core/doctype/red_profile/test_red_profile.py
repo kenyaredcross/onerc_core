@@ -21,10 +21,13 @@ PERSONAL_FIELDS = (
 	"gender",
 	"date_of_birth",
 	"marital_status",
-	"nationality",
+	"country_of_citizenship",
 	"citizenship_status",
 	"preferred_language",
 	"profile_photo",
+	"residency_type",
+	"country_of_residence",
+	"residence_address",
 )
 
 
@@ -166,10 +169,13 @@ class IntegrationTestRedProfile(IntegrationTestCase):
 			gender="Female",
 			date_of_birth="1994-03-17",
 			marital_status="Married",
-			nationality="Kenya",
+			country_of_citizenship="Kenya",
 			citizenship_status="Citizen",
 			preferred_language="en",
 			profile_photo="/files/portrait.png",
+			residency_type="Abroad",
+			country_of_residence="Uganda",
+			residence_address="Kampala",
 			identifications=[{"id_type": id_type, "id_number": "12345678", "is_primary": 1}],
 		)
 
@@ -178,10 +184,13 @@ class IntegrationTestRedProfile(IntegrationTestCase):
 		self.assertEqual(doc.gender, "Female")
 		self.assertEqual(str(doc.date_of_birth), "1994-03-17")
 		self.assertEqual(doc.marital_status, "Married")
-		self.assertEqual(doc.nationality, "Kenya")
+		self.assertEqual(doc.country_of_citizenship, "Kenya")
 		self.assertEqual(doc.citizenship_status, "Citizen")
 		self.assertEqual(doc.preferred_language, "en")
 		self.assertEqual(doc.profile_photo, "/files/portrait.png")
+		self.assertEqual(doc.residency_type, "Abroad")
+		self.assertEqual(doc.country_of_residence, "Uganda")
+		self.assertEqual(doc.residence_address, "Kampala")
 		self.assertEqual(len(doc.identifications), 1)
 
 	def test_gender_is_a_link_to_the_configurable_vocabulary(self):
@@ -204,15 +213,50 @@ class IntegrationTestRedProfile(IntegrationTestCase):
 		with self.assertRaises(frappe.LinkValidationError):
 			self._make(email="unknown.gender@example.test", gender="Not A Configured Gender")
 
-	def test_nationality_links_to_country(self):
-		self.assertEqual(frappe.get_meta("Red Profile").get_field("nationality").options, "Country")
+	def test_country_of_citizenship_links_to_country(self):
+		self.assertEqual(
+			frappe.get_meta("Red Profile").get_field("country_of_citizenship").options, "Country"
+		)
 
 	def test_there_is_no_second_country_field(self):
-		"""One question, asked once. The old duplication is deliberately dropped."""
+		"""Citizenship has one source on the person, under an explicit name."""
 		meta = frappe.get_meta("Red Profile")
 
-		for fieldname in ("country_of_citizenship", "country", "citizenship_country"):
-			self.assertIsNone(meta.get_field(fieldname), f"{fieldname} duplicates nationality")
+		for fieldname in ("nationality", "country", "citizenship_country"):
+			self.assertIsNone(
+				meta.get_field(fieldname), f"{fieldname} duplicates country_of_citizenship"
+			)
+
+	def test_residence_shapes_are_on_the_profile(self):
+		meta = frappe.get_meta("Red Profile")
+
+		self.assertEqual(meta.get_field("residency_type").options.split("\n"), ["", "Local", "Abroad"])
+		self.assertEqual(meta.get_field("home_geo_node").options, "Geo Node")
+		self.assertEqual(meta.get_field("country_of_residence").options, "Country")
+
+	def test_local_residence_clears_abroad_details(self):
+		doc = frappe.new_doc("Red Profile")
+		doc.residency_type = "Local"
+		doc.home_geo_node = "GEO-LOCAL"
+		doc.country_of_residence = "Uganda"
+		doc.residence_address = "Kampala"
+		doc.reconcile_residence()
+
+		self.assertTrue(doc.home_geo_node)
+		self.assertFalse(doc.country_of_residence)
+		self.assertFalse(doc.residence_address)
+
+	def test_abroad_residence_clears_home_geo_node(self):
+		doc = frappe.new_doc("Red Profile")
+		doc.residency_type = "Abroad"
+		doc.home_geo_node = "GEO-LOCAL"
+		doc.country_of_residence = "Uganda"
+		doc.residence_address = "Kampala"
+		doc.reconcile_residence()
+
+		self.assertFalse(doc.home_geo_node)
+		self.assertEqual(doc.country_of_residence, "Uganda")
+		self.assertEqual(doc.residence_address, "Kampala")
 
 	def test_preferred_language_is_a_link(self):
 		field = frappe.get_meta("Red Profile").get_field("preferred_language")
@@ -285,7 +329,7 @@ class IntegrationTestRedProfile(IntegrationTestCase):
 		self.assertEqual(rows[1].attachment, "/files/passport.pdf")
 
 	def test_two_documents_of_one_type_are_allowed(self):
-		"""Dual nationality means two passports. The old shape could hold one."""
+		"""Dual citizenship can mean two passports. The old shape could hold one."""
 		passport = self._make_identification_type("passport", label="Passport")
 
 		profile = self._make(

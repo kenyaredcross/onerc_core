@@ -26,7 +26,7 @@ class RedProfile(Document):
 	domain data — a volunteer's skills and a member's fee live in satellite
 	doctypes in other apps that link back here.
 
-	The personal fields — gender, date of birth, nationality, citizenship, the
+	The personal fields — gender, date of birth, citizenship, residence, and the
 	documents someone holds — are not an exception to that. They are
 	person-facts, true whatever roles the person holds, which is why they belong
 	on the spine rather than being copied into every satellite that wants one.
@@ -53,6 +53,7 @@ class RedProfile(Document):
 		self.normalise_email()
 		self.set_full_name()
 		self.validate_phone_number()
+		self.reconcile_residence()
 		self.validate_identifications()
 		self.guard_affiliations_are_service_written()
 
@@ -83,6 +84,21 @@ class RedProfile(Document):
 
 		config.validate_phone_number(self.phone, self.meta.get_label("phone"))
 
+	def reconcile_residence(self):
+		"""Keep the two residence shapes mutually exclusive.
+
+		A local residence is a Geo Node in the society's own tree. An address
+		abroad has no honest node in that tree, so it is a country and free-text
+		address instead. Switching the toggle clears the answer that no longer
+		applies rather than leaving two conflicting current residences on the
+		person.
+		"""
+		if self.residency_type == "Abroad":
+			self.home_geo_node = None
+		elif self.residency_type == "Local":
+			self.country_of_residence = None
+			self.residence_address = None
+
 	def validate_identifications(self):
 		"""Tidy the rows, and keep "primary" meaning one thing.
 
@@ -93,7 +109,7 @@ class RedProfile(Document):
 		person" must get one answer, not a choice.
 
 		Two rows of the same type are fine and deliberately allowed. Dual
-		nationality means two passports, and a society that could not record
+		citizenship may mean two passports, and a society that could not record
 		both would be back at the flat fields this table replaced.
 		"""
 		primary = 0

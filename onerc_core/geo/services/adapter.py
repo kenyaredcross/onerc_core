@@ -292,6 +292,58 @@ def get_full_path(node: str) -> str:
 	return PATH_SEPARATOR.join(name for name in names if name)
 
 
+def get_point(node: str) -> dict | None:
+	"""Where a node is, as `{"latitude": …, "longitude": …}`, or None.
+
+	**None is the ordinary answer**, not a failure. Most trees are filled in from
+	the top down over months and a great many nodes will never carry a point at
+	all, so every caller has to handle its absence — and a caller that handles it
+	is a caller that draws the nodes it can and says how many it could not,
+	rather than one that quietly drops them.
+
+	Half a pair cannot reach here: `GeoNode.validate_coordinates` refuses one on
+	save, because an empty Float stores as `0.0` and a node with only a latitude
+	would otherwise be drawn confidently in the Gulf of Guinea. This still checks
+	both values are non-zero, for the same reason that rule exists — a row written
+	before the rule, or by a migration that bypassed it, must not become a pin in
+	the Atlantic.
+	"""
+	row = frappe.db.get_value("Geo Node", node, ["latitude", "longitude"], as_dict=True)
+
+	if not row or not (row.latitude and row.longitude):
+		return None
+
+	return {"latitude": row.latitude, "longitude": row.longitude}
+
+
+def get_points(nodes: list[str]) -> dict[str, dict]:
+	"""`get_point` for many nodes, in one query rather than one each.
+
+	The shape a map wants: a caller that has counted something per node asks once
+	for all of them. Nodes without a point are **absent from the answer** rather
+	than present with None — a caller iterating the result gets only what it can
+	draw, and one that needs the difference compares against what it asked for.
+	"""
+	if not nodes:
+		return {}
+
+	rows = frappe.get_all(
+		"Geo Node",
+		filters={"name": ("in", nodes)},
+		fields=["name", "latitude", "longitude"],
+		# Reading coordinates for nodes the caller has already been handed by a
+		# scoped query of its own. The geo tree is not itself scoped — it is the
+		# thing scoping is expressed *in* — so there is nothing here to filter by.
+		ignore_permissions=True,
+	)
+
+	return {
+		row["name"]: {"latitude": row["latitude"], "longitude": row["longitude"]}
+		for row in rows
+		if row["latitude"] and row["longitude"]
+	}
+
+
 def resolve_upward(node: str, predicate: Callable[[str], bool]) -> str | None:
 	"""Walk [node] + ancestors nearest-first; return the first match.
 
