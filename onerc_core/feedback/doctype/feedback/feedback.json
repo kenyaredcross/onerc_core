@@ -18,6 +18,7 @@
   "email",
   "message_section",
   "message",
+  "attachment",
   "review_section",
   "reviewed_on",
   "reviewed_by",
@@ -91,6 +92,11 @@
    "in_global_search": 1,
    "label": "Message",
    "reqd": 1
+  },
+  {
+   "fieldname": "attachment",
+   "fieldtype": "Attach",
+   "label": "Attachment"
   },
   {
    "collapsible": 1,

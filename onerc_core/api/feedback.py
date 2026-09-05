@@ -13,7 +13,7 @@ def get_feedback_types():
 
 
 @frappe.whitelist(allow_guest=True)
-def submit_feedback(feedback_type, message, subject=None, email=None):
+def submit_feedback(feedback_type, message, subject=None, email=None, attachment=None):
 	"""Create a new Feedback record"""
 	if not message or not message.strip():
 		frappe.throw(_("Message is required."))
@@ -30,6 +30,9 @@ def submit_feedback(feedback_type, message, subject=None, email=None):
 		doc.submitted_by = frappe.session.user
 	elif email:
 		doc.email = email
+
+	if attachment:
+		doc.attachment = attachment
 
 	doc.insert(ignore_permissions=True)
 	frappe.db.commit()
@@ -62,6 +65,7 @@ def get_feedback_list(status=None, feedback_type=None, page=1, page_size=20):
 			"name", "subject", "feedback_type", "status",
 			"submitted_by", "full_name", "email",
 			"submission_date", "reviewed_by", "reviewed_on",
+			"attachment",
 		],
 		order_by="submission_date desc",
 		limit_start=(page - 1) * page_size,
