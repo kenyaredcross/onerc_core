@@ -1,0 +1,92 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:identification_type_key",
+ "creation": "2026-08-04 09:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "type_identity_section",
+  "identification_type_name",
+  "identification_type_key",
+  "column_break_ident",
+  "is_active",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "type_identity_section",
+   "fieldtype": "Section Break",
+   "label": "Type Identity"
+  },
+  {
+   "description": "A kind of identity document a person may hold, eg. National ID, Passport, Alien ID, Driving Licence. Societies add their own.",
+   "fieldname": "identification_type_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Identification Type Name",
+   "reqd": 1
+  },
+  {
+   "description": "Stable key used by imports and configuration, eg. national_id, passport.",
+   "fieldname": "identification_type_key",
+   "fieldtype": "Data",
+   "label": "Identification Type Key",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_ident",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "description": "Inactive types stay on the records that already carry them. They are simply no longer offered.",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-04 09:00:00",
+ "modified_by": "Administrator",
+ "module": "Onerc Core",
+ "name": "Identification Type",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All"
+  }
+ ],
+ "quick_entry": 1,
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "show_title_field_in_link": 1,
+ "sort_field": "identification_type_name",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "identification_type_name",
+ "track_changes": 1
+}

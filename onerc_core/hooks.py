@@ -119,14 +119,22 @@ app_license = "mit"
 # Permissions
 # -----------
 # Permissions evaluated in scripted ways
-
-# permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
 #
-# has_permission = {
-# 	"Event": "frappe.desk.doctype.event.event.has_permission",
-# }
+# Geo scoping, registered under the "*" wildcard. Frappe resolves these hooks as
+# `hooks.get(doctype, []) + hooks.get("*", [])`, so a wildcard handler is called
+# for every doctype and decides for itself whether it has anything to say.
+#
+# That is what keeps the inversion to a single declaration: an app makes its
+# doctype geo-scoped by adding one `onerc_scopeable_doctypes` entry, and does
+# not also have to wire these two hooks. Both handlers return "no opinion" —
+# empty condition, permission granted — for any doctype nobody registered, so a
+# site with no product apps installed is unaffected.
+#
+# See onerc_core/access/services/enforcement.py.
+
+permission_query_conditions = {"*": "onerc_core.access.services.enforcement.get_permission_query_conditions"}
+
+has_permission = {"*": "onerc_core.access.services.enforcement.has_permission"}
 
 # Document Events
 # ---------------
@@ -162,14 +170,29 @@ app_license = "mit"
 # }
 
 scheduler_events = {
-	"cron": {
-		"*/5 * * * *": [
-			"onerc_core.onerc_core.doctype.article.article.publish_scheduled_articles"
-		]
-	}
+	"cron": {"*/5 * * * *": ["onerc_core.onerc_core.doctype.article.article.publish_scheduled_articles"]}
 }
 
 fixtures = [
+	# A starting vocabulary of identity documents, not a closed list: a society
+	# edits it, deactivates what it does not recognise and adds what it does.
+	# Filtered by key so a society's own additions are never swept up and
+	# exported back over the seeded set.
+	{
+		"dt": "Identification Type",
+		"filters": [
+			[
+				"identification_type_key",
+				"in",
+				[
+					"national_id",
+					"passport",
+					"alien_id",
+					"driving_licence",
+				],
+			]
+		],
+	},
 	{
 		"dt": "Stakeholder Entity",
 		"filters": [
@@ -194,13 +217,13 @@ fixtures = [
 					"Government",
 					"Private Sector",
 					"Donor",
-					"Peer Organization",	
-					"Implementing Partner",	
-					"Potential Donor",	
+					"Peer Organization",
+					"Implementing Partner",
+					"Potential Donor",
 				],
 			]
 		],
-	}
+	},
 ]
 # Testing
 # -------
@@ -290,3 +313,65 @@ fixtures = [
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
+
+# Hooks onerc_core consumes from other apps
+# -----------------------------------------
+#
+# Core defines these; satellite apps implement them. Core never imports a
+# satellite, so both are dependency-inverted: the other app registers itself.
+#
+# onerc_affiliation_providers — how rebuild_affiliations() discovers what to
+# rebuild a Red Profile's affiliation index from. Each provider declares the
+# satellite doctypes it owns and returns the profile's live affiliations:
+#
+# 	onerc_affiliation_providers = ["vmmsx.volunteer.affiliations.provide"]
+#
+# 	def provide(profile: str) -> dict:
+# 		return {
+# 			"reference_doctypes": ["Volunteer"],
+# 			"affiliations": [
+# 				{
+# 					"affiliation_type": "volunteer",
+# 					"status": "Active",
+# 					"reference_doctype": "Volunteer",
+# 					"reference_name": "VOL-00042",
+# 				}
+# 			],
+# 		}
+#
+# A row is only ever removed when a registered provider owns its
+# reference_doctype and did not claim it. No providers means no ownership, so a
+# rebuild on a site with no satellites installed is a read-only no-op.
+# See onerc_core/identity/services/affiliation.py.
+#
+# onerc_capability_resolver — how the read gate asks whether a user holds a
+# capability. Exactly one app may own it, and with none installed every gated
+# affiliation row is hidden from everyone:
+#
+# 	onerc_capability_resolver = "some_app.capabilities.has_capability"
+#
+# 	def has_capability(user: str, capability: str) -> bool: ...
+#
+# See onerc_core/identity/services/read_gate.py.
+#
+# onerc_scopeable_doctypes — which doctypes are geo-scoped, and on what field.
+# Core owns the scoping engine but must never name a product doctype, so each
+# app declares its own:
+#
+# 	onerc_scopeable_doctypes = [
+# 		{
+# 			"doctype": "Volunteer",
+# 			"geo_node_field": "home_geo_node",
+# 			"role": "Volunteer Approver",
+# 		},
+# 	]
+#
+# Read as: scope my Volunteer doctype on its home_geo_node field, for the
+# Volunteer Approver role. Core generates all three enforcement layers from that
+# — list query, document read and the API guard — without importing the app.
+#
+# Exactly one app may register a given doctype: two apps scoping one doctype
+# differently would make a security boundary depend on install order. With
+# nothing registered the engine is inert and no doctype is scoped.
+#
+# See onerc_core/access/services/registry.py.
