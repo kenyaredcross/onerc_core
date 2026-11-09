@@ -34,6 +34,11 @@ from frappe import _
 
 from onerc_core.access.services import registry, scope
 
+# The permission types a registration's reading role is admitted for. Every
+# other type (write, create, submit, cancel, delete, amend, share) is decided by
+# the registration's own role alone.
+READ_PTYPES = frozenset({"read", "select", "report", "print", "export", "email"})
+
 # A condition that is false for every row. Returned when a user's scope is
 # empty: the layer must express "matches nothing", and an empty string would
 # mean "no filter" — the exact inversion of what an empty scope means.
@@ -57,6 +62,9 @@ def get_permission_query_conditions(user: str | None = None, doctype: str | None
 	if scope.has_unrestricted_scope(user):
 		return ""
 
+	if _reads_everywhere(user, registration):
+		return ""
+
 	field = registry.geo_node_field(doctype)
 	role = registry.resolve_role(registration)
 
@@ -66,7 +74,8 @@ def get_permission_query_conditions(user: str | None = None, doctype: str | None
 		# here would break every list view on the site instead of one doctype's.
 		return DENY_ALL
 
-	nodes = scope.get_user_geo_scope(user, role)
+	# A list is a read, so the reading role's area counts as well.
+	nodes = _scope_for(user, registration, role, "read")
 
 	if not nodes:
 		return DENY_ALL
@@ -96,10 +105,12 @@ def has_permission(doc=None, ptype: str | None = None, user: str | None = None, 
 
 	field = registry.geo_node_field(doc.doctype)
 
-	return is_in_scope(doc.doctype, doc.get(field), user)
+	return is_in_scope(doc.doctype, doc.get(field), user, ptype=ptype or "read")
 
 
-def is_in_scope(doctype: str, geo_node: str | None, user: str | None = None) -> bool:
+def is_in_scope(
+	doctype: str, geo_node: str | None, user: str | None = None, ptype: str | None = None
+) -> bool:
 	"""The shared verdict: may `user` reach a record of `doctype` at `geo_node`?
 
 	Used by the document layer and the API guard so the two cannot drift. Returns
@@ -116,6 +127,9 @@ def is_in_scope(doctype: str, geo_node: str | None, user: str | None = None) -> 
 	if scope.has_unrestricted_scope(user):
 		return True
 
+	if ptype in READ_PTYPES and _reads_everywhere(user, registration):
+		return True
+
 	if not geo_node:
 		return False
 
@@ -128,10 +142,39 @@ def is_in_scope(doctype: str, geo_node: str | None, user: str | None = None) -> 
 		# becomes decorative.
 		return False
 
-	return geo_node in scope.get_user_geo_scope(user, role)
+	return geo_node in _scope_for(user, registration, role, ptype)
 
 
-def guard(doctype: str, name: str, user: str | None = None) -> None:
+def _reads_everywhere(user: str, registration: dict) -> bool:
+	"""Does `user` hold this doctype's national reading role?
+
+	Only ever consulted for a read. A list is a read; `is_in_scope` asks only when
+	its `ptype` is one.
+	"""
+	role = registry.resolve_national_read_role(registration)
+
+	return bool(role and role in frappe.get_roles(user))
+
+
+def _scope_for(user: str, registration: dict, role: str, ptype: str | None) -> set[str]:
+	"""The nodes `user` reaches for this doctype, for this kind of access.
+
+	The registration's role always counts. Its reading role counts only for a
+	read: `ptype=None`, which is how callers that act on a record have always
+	called `is_in_scope`, stays the role's area alone.
+	"""
+	nodes = set(scope.get_user_geo_scope(user, role))
+
+	if ptype in READ_PTYPES:
+		reader = registry.resolve_read_role(registration)
+
+		if reader and reader != role:
+			nodes |= scope.get_user_geo_scope(user, reader)
+
+	return nodes
+
+
+def guard(doctype: str, name: str, user: str | None = None, ptype: str | None = None) -> None:
 	"""Raise `frappe.PermissionError` unless the record is in the user's scope.
 
 	What a custom endpoint calls before returning anything about a record.
@@ -153,7 +196,7 @@ def guard(doctype: str, name: str, user: str | None = None) -> None:
 	field = registry.geo_node_field(doctype)
 	geo_node = frappe.db.get_value(doctype, name, field) if name else None
 
-	if is_in_scope(doctype, geo_node, user):
+	if is_in_scope(doctype, geo_node, user, ptype=ptype):
 		return
 
 	# The resolved role, so the message names the role the society actually

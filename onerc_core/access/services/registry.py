@@ -81,6 +81,19 @@ ROLE_KEY = "role"
 ROLE_SETTING_KEY = "role_from_setting"
 ROLE_KEYS = (ROLE_KEY, ROLE_SETTING_KEY)
 
+# Optional, and never instead of the role above: the National Society Settings
+# field naming a role that may also *read* this doctype in the area it is
+# assigned, and do nothing else. Oversight, not authority — see
+# `resolve_read_role()`.
+READ_ROLE_SETTING_KEY = "read_role_from_setting"
+
+# Optional too: the National Society Settings field naming a role whose holders
+# may *read* this doctype everywhere, with no Geo Assignment. National oversight:
+# somebody whose job is the whole country, identified by the role they hold
+# rather than by where they happen to be assigned. See
+# `resolve_national_read_role()`.
+NATIONAL_READ_ROLE_SETTING_KEY = "national_read_role_from_setting"
+
 # Kept for message text and for anything reading the historical name. A static
 # registration still consists of exactly these three keys and nothing else.
 REQUIRED_KEYS = (*BASE_KEYS, ROLE_KEY)
@@ -230,6 +243,66 @@ def resolve_role(registration: dict) -> str | None:
 	return role
 
 
+def resolve_read_role(registration: dict) -> str | None:
+	"""A second role that may read this doctype in its assigned area, or None.
+
+	**Reading only.** The registration's own role stays the one role whose scope
+	governs writing, submitting, deleting and every other act; this role widens
+	who may *open* a record, never who may change it. The case it exists for is
+	oversight one rung up: somebody responsible for a region who must see every
+	county's volunteers and members in it without being made the officer who
+	edits them.
+
+	Unset is normal (a society that appoints nobody to oversee) and returns None
+	without a log entry. A value naming no role is a misconfiguration and is
+	logged, and the extra reader is simply not granted: unlike the main role,
+	failing to resolve this one takes nothing away from anybody.
+	"""
+	return _read_role_from(registration, READ_ROLE_SETTING_KEY)
+
+
+def resolve_national_read_role(registration: dict) -> str | None:
+	"""A role whose holders may read this doctype everywhere, or None.
+
+	**Reading only, and everywhere.** Unlike the reading role above, this one is
+	not narrowed by Geo Assignment: holding it is the whole grant, the way holding
+	System Manager is, but for reads alone. The registration's own role still
+	governs every act.
+
+	Unset returns None quietly. A value naming no role is logged and grants
+	nothing, for the same reason as `resolve_read_role`.
+	"""
+	return _read_role_from(registration, NATIONAL_READ_ROLE_SETTING_KEY)
+
+
+def _read_role_from(registration: dict, key: str) -> str | None:
+	fieldname = registration.get(key)
+
+	if not fieldname:
+		return None
+
+	from onerc_core.society.services import config
+
+	role = (config.settings().get(fieldname) or "").strip()
+
+	if not role:
+		return None
+
+	if not frappe.db.exists("Role", role):
+		frappe.log_error(
+			title=UNRESOLVED_ROLE_LOG_TITLE,
+			message=(
+				f"{registration.get('doctype')} names {role!r} in National Society Settings"
+				f" {fieldname!r} as a reading role, and no such role exists. Nobody was given"
+				f" extra read access. Registration: {registration}"
+			),
+		)
+
+		return None
+
+	return role
+
+
 def settings_backed_registrations() -> list[dict]:
 	"""Every registration whose role comes from a settings field.
 
@@ -290,6 +363,10 @@ def _validated(raw) -> dict:
 
 	entry = {key: str(raw[key]) for key in BASE_KEYS}
 	entry[_role_key(raw)] = str(raw[_role_key(raw)])
+
+	for key in (READ_ROLE_SETTING_KEY, NATIONAL_READ_ROLE_SETTING_KEY):
+		if raw.get(key):
+			entry[key] = str(raw[key])
 
 	return entry
 
