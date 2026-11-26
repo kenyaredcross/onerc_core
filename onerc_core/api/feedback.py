@@ -42,8 +42,13 @@ def submit_feedback(feedback_type, message, subject=None, email=None, attachment
 
 @frappe.whitelist()
 def get_feedback_list(status=None, feedback_type=None, page=1, page_size=20):
-	"""Return a paginated list of feedback records"""
-	# frappe.only_for("LH Admin", "System Manager")
+	"""Return a paginated list of feedback records.
+
+	Reviewers only. The records carry the submitter's name and email, and the
+	query below runs with frappe.get_all (which ignores permissions), so this
+	guard is the only thing restricting access. It must stay enabled.
+	"""
+	frappe.only_for(["LH Admin", "System Manager"])
 
 	page = max(1, int(page))
 	page_size = min(100, max(1, int(page_size)))

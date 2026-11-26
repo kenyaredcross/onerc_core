@@ -1,7 +1,6 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "GEO.-.{geo_level}.-.{geo_name}",
  "creation": "2026-04-19 09:04:48.125148",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -14,11 +13,14 @@
   "section_break_ximj",
   "geo_node_name",
   "geo_level",
-  "geo_level_order",
   "column_break_jybh",
   "parent_geo_node",
   "geo_code",
-  "is_group"
+  "is_group",
+  "place_section",
+  "latitude",
+  "column_break_place",
+  "longitude"
  ],
  "fields": [
   {
@@ -60,7 +62,6 @@
    "fieldtype": "Link",
    "ignore_user_permissions": 1,
    "label": "Parent Geo Node",
-   "mandatory_depends_on": "eval: doc.geo_level_order > 1",
    "options": "Geo Node"
   },
   {
@@ -98,11 +99,27 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "geo_level.level_order",
-   "fetch_if_empty": 1,
-   "fieldname": "geo_level_order",
-   "fieldtype": "Int",
-   "label": "Geo Level Order"
+   "fieldname": "place_section",
+   "fieldtype": "Section Break",
+   "label": "Where It Is"
+  },
+  {
+   "description": "Where on the earth this node is, in decimal degrees. Optional, and a node without it is in no way less real \u2014 most trees will be filled in from the top down over months, and a great many nodes will never have one. What it buys is that anything counted per node can be drawn on a map: a product asks the geo adapter for a node's point and gets one or None, rather than keeping its own second list of where places are. Both values or neither; a Float left empty stores as 0.0, so half a pair would be drawn confidently in the Gulf of Guinea.",
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude",
+   "precision": "6"
+  },
+  {
+   "fieldname": "column_break_place",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "The other half of the pair, in decimal degrees. Refused if it is not on the earth, which almost always means the two were typed the wrong way round.",
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude",
+   "precision": "6"
   }
  ],
  "grid_page_length": 50,
@@ -113,7 +130,7 @@
  "modified_by": "Administrator",
  "module": "Onerc Core",
  "name": "Geo Node",
- "naming_rule": "Expression",
+ "naming_rule": "",
  "nsm_parent_field": "parent_geo_node",
  "owner": "Administrator",
  "permissions": [
